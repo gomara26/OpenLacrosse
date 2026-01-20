@@ -39,7 +39,7 @@ interface SchoolMatch {
     coaching_position: string
     division: string
     team_gender: string
-  }
+  } | null
   coach_info: {
     first_name: string | null
     last_name: string | null

@@ -29,6 +29,7 @@ interface Message {
   content: string
   created_at: string
   read_at: string | null
+  conversation_id?: string
 }
 
 export default function AthleteMessagesPage() {
@@ -96,7 +97,7 @@ export default function AthleteMessagesPage() {
             })
           } else {
             // If message is in another conversation, auto-select it if it's from another user
-            if (newMessage.sender_id !== currentUser) {
+            if (newMessage.sender_id !== currentUser && newMessage.conversation_id) {
               setSelectedConversation(newMessage.conversation_id)
             }
             // Refresh conversations to update last message

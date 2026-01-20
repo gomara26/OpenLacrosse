@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
+import { MessageCircle, Send } from 'lucide-react'
 
 interface Conversation {
   id: string
@@ -29,6 +30,7 @@ interface Message {
   content: string
   created_at: string
   read_at: string | null
+  conversation_id?: string
 }
 
 export default function AthleteMessagesPage() {
@@ -96,7 +98,7 @@ export default function AthleteMessagesPage() {
             })
           } else {
             // If message is in another conversation, auto-select it if it's from another user
-            if (newMessage.sender_id !== currentUser) {
+            if (newMessage.sender_id !== currentUser && newMessage.conversation_id) {
               setSelectedConversation(newMessage.conversation_id)
             }
             // Refresh conversations to update last message
@@ -457,9 +459,16 @@ export default function AthleteMessagesPage() {
                 <button
                   type="submit"
                   disabled={!messageContent.trim() || sending}
-                  className="rounded-lg bg-orange-500 px-6 py-2 font-semibold text-white transition-colors hover:bg-orange-600 disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="flex items-center gap-2 rounded-lg bg-orange-500 px-6 py-2 font-semibold text-white transition-colors hover:bg-orange-600 disabled:opacity-50 disabled:cursor-not-allowed"
                 >
-                  {sending ? 'Sending...' : 'Send'}
+                  {sending ? (
+                    'Sending...'
+                  ) : (
+                    <>
+                      <Send className="h-4 w-4" />
+                      Send
+                    </>
+                  )}
                 </button>
               </form>
             </div>
@@ -467,9 +476,7 @@ export default function AthleteMessagesPage() {
         ) : (
           <div className="flex-1 flex items-center justify-center">
             <div className="text-center">
-              <svg className="mx-auto h-16 w-16 text-slate-400 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
-              </svg>
+              <MessageCircle className="mx-auto h-16 w-16 text-slate-400 mb-4" />
               <h3 className="text-xl font-semibold text-white mb-2">Select a conversation</h3>
               <p className="text-slate-400">Choose a conversation from the list to start messaging</p>
             </div>

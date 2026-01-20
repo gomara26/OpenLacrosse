@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react'
 import { useRouter, usePathname } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import Link from 'next/link'
+import { ChevronRight, ChevronLeft, Target, Trophy, Users, MessageCircle, LogOut, User, ChevronDown } from 'lucide-react'
 
 interface Profile {
   id: string
@@ -94,9 +95,7 @@ export default function Sidebar({ isCollapsed: externalCollapsed, setIsCollapsed
       <div className="flex h-16 items-center justify-between border-b border-slate-700 px-4 flex-shrink-0">
         {!isCollapsed && (
           <div className="flex items-center gap-2">
-            <div className="flex h-8 w-8 items-center justify-center rounded bg-orange-500">
-              <span className="text-lg">🏆</span>
-            </div>
+            <Trophy className="h-8 w-8 text-orange-500" />
             <span className="font-bold text-white">Open Lacrosse Recruiting</span>
           </div>
         )}
@@ -106,13 +105,9 @@ export default function Sidebar({ isCollapsed: externalCollapsed, setIsCollapsed
           aria-label={isCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
         >
           {isCollapsed ? (
-            <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-            </svg>
+            <ChevronRight className="h-5 w-5" />
           ) : (
-            <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-            </svg>
+            <ChevronLeft className="h-5 w-5" />
           )}
         </button>
       </div>
@@ -132,16 +127,9 @@ export default function Sidebar({ isCollapsed: externalCollapsed, setIsCollapsed
                 title={isCollapsed ? getDashboardLabel() : undefined}
               >
                 {profile.role === 'player' ? (
-                  // Target icon for Athlete Dashboard
-                  <svg className="h-5 w-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8zm0-14c-3.31 0-6 2.69-6 6s2.69 6 6 6 6-2.69 6-6-2.69-6-6-6zm0 10c-2.21 0-4-1.79-4-4s1.79-4 4-4 4 1.79 4 4-1.79 4-4 4z" />
-                    <circle cx="12" cy="12" r="2" fill="currentColor" />
-                  </svg>
+                  <Target className="h-5 w-5 flex-shrink-0" />
                 ) : (
-                  // Trophy icon for Coach Dashboard
-                  <svg className="h-5 w-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4M7.835 4.697a3.42 3.42 0 001.946-.806 3.42 3.42 0 014.438 0 3.42 3.42 0 001.946.806 3.42 3.42 0 013.138 3.138 3.42 3.42 0 00.806 1.946 3.42 3.42 0 010 4.438 3.42 3.42 0 00-.806 1.946 3.42 3.42 0 01-3.138 3.138 3.42 3.42 0 00-1.946.806 3.42 3.42 0 01-4.438 0 3.42 3.42 0 00-1.946-.806 3.42 3.42 0 01-3.138-3.138 3.42 3.42 0 00-.806-1.946 3.42 3.42 0 010-4.438 3.42 3.42 0 00.806-1.946 3.42 3.42 0 013.138-3.138z" />
-                  </svg>
+                  <Trophy className="h-5 w-5 flex-shrink-0" />
                 )}
                 {!isCollapsed && <span>{getDashboardLabel()}</span>}
               </Link>
@@ -157,9 +145,7 @@ export default function Sidebar({ isCollapsed: externalCollapsed, setIsCollapsed
                   }`}
                   title={isCollapsed ? 'Connect' : undefined}
                 >
-                  <svg className="h-5 w-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
-                  </svg>
+                  <Users className="h-5 w-5 flex-shrink-0" />
                   {!isCollapsed && <span>Connect</span>}
                 </Link>
               )}
@@ -174,9 +160,7 @@ export default function Sidebar({ isCollapsed: externalCollapsed, setIsCollapsed
                 }`}
                 title={isCollapsed ? 'Messages' : undefined}
               >
-                <svg className="h-5 w-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
-                </svg>
+                <MessageCircle className="h-5 w-5 flex-shrink-0" />
                 {!isCollapsed && <span>Messages</span>}
               </Link>
             </>
@@ -198,9 +182,7 @@ export default function Sidebar({ isCollapsed: externalCollapsed, setIsCollapsed
                   }`}
                   title={isCollapsed ? 'Sign Out' : undefined}
                 >
-                  <svg className="h-5 w-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
-                  </svg>
+                  <LogOut className="h-5 w-5 flex-shrink-0" />
                   {!isCollapsed && <span>Sign Out</span>}
                 </button>
               </div>
@@ -219,9 +201,7 @@ export default function Sidebar({ isCollapsed: externalCollapsed, setIsCollapsed
                 />
               ) : (
                 <div className="flex h-10 w-10 items-center justify-center rounded-full bg-slate-700 flex-shrink-0">
-                  <svg className="h-6 w-6 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
-                  </svg>
+                  <User className="h-6 w-6 text-slate-400" />
                 </div>
               )}
               {!isCollapsed && (
@@ -233,14 +213,7 @@ export default function Sidebar({ isCollapsed: externalCollapsed, setIsCollapsed
                 </div>
               )}
               {!isCollapsed && (
-                <svg
-                  className={`h-4 w-4 text-slate-400 transition-transform ${showSignOut ? 'rotate-180' : ''}`}
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                </svg>
+                <ChevronDown className={`h-4 w-4 text-slate-400 transition-transform ${showSignOut ? 'rotate-180' : ''}`} />
               )}
             </button>
           </>
