@@ -99,8 +99,8 @@ export default async function DashboardPage() {
 
   // Redirect to role-specific dashboard
   if (profile.role === 'player') {
-    redirect('/dashboard/athlete')
+    redirect('/athlete/dashboard')
   } else {
-    redirect('/dashboard/coach')
+    redirect('/coach/dashboard')
   }
 }
