@@ -1,0 +1,405 @@
+'use client'
+
+import { useState, useEffect } from 'react'
+import { useRouter } from 'next/navigation'
+import { createClient } from '@/lib/supabase/client'
+import Link from 'next/link'
+
+interface Profile {
+  first_name: string | null
+  last_name: string | null
+  profile_photo_url: string | null
+}
+
+interface PlayerProfile {
+  position: string
+  graduation_year: number
+  height: string | null
+  weight_lbs: number | null
+  high_school: string | null
+  club_team: string | null
+  achievements_awards: string | null
+  highlight_video_url: string | null
+  gpa: number | null
+  sat_score: number | null
+  act_score: number | null
+  academic_interests: string | null
+  division_preference: string | null
+  geographic_preference: string | null
+}
+
+export default function AthleteDashboard() {
+  const [profile, setProfile] = useState<Profile | null>(null)
+  const [playerProfile, setPlayerProfile] = useState<PlayerProfile | null>(null)
+  const [loading, setLoading] = useState(true)
+  const [activeTab, setActiveTab] = useState<'matches' | 'profile'>('matches')
+  const router = useRouter()
+  const supabase = createClient()
+
+  useEffect(() => {
+    async function loadData() {
+      try {
+        const { data: { user } } = await supabase.auth.getUser()
+        if (!user) {
+          router.push('/login')
+          return
+        }
+
+        // Load profile
+        const { data: profileData, error: profileError } = await supabase
+          .from('profiles')
+          .select('first_name, last_name, profile_photo_url')
+          .eq('id', user.id)
+          .single()
+
+        if (profileError) throw profileError
+
+        // Load player profile
+        const { data: playerData, error: playerError } = await supabase
+          .from('player_profiles')
+          .select('*')
+          .eq('id', user.id)
+          .single()
+
+        if (playerError && playerError.code !== 'PGRST116') throw playerError
+
+        setProfile(profileData)
+        setPlayerProfile(playerData)
+      } catch (error) {
+        console.error('Error loading data:', error)
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    loadData()
+  }, [router, supabase])
+
+  const calculateProfileCompleteness = () => {
+    if (!playerProfile || !profile) return 0
+    
+    const fields = [
+      profile.first_name,
+      profile.last_name,
+      playerProfile.position,
+      playerProfile.graduation_year,
+      playerProfile.height,
+      playerProfile.weight_lbs,
+      playerProfile.high_school,
+      playerProfile.club_team,
+      playerProfile.gpa,
+      playerProfile.sat_score,
+      playerProfile.academic_interests,
+      playerProfile.division_preference,
+      playerProfile.geographic_preference,
+    ]
+    
+    const filledFields = fields.filter(field => field !== null && field !== undefined && field !== '').length
+    return Math.round((filledFields / fields.length) * 100)
+  }
+
+  const formatHeight = (height: string | null) => {
+    if (!height) return null
+    // If already formatted, return as is
+    if (height.includes("'")) return height
+    // If it's just a number, assume it's in inches
+    const inches = parseInt(height)
+    if (!isNaN(inches)) {
+      const feet = Math.floor(inches / 12)
+      const remainingInches = inches % 12
+      return `${feet}'${remainingInches}"`
+    }
+    return height
+  }
+
+  if (loading) {
+    return (
+      <div className="flex h-screen items-center justify-center">
+        <div className="text-slate-400">Loading...</div>
+      </div>
+    )
+  }
+
+  if (!profile || !playerProfile) {
+    return (
+      <div className="px-4 py-8">
+        <div className="text-white">Unable to load profile data</div>
+      </div>
+    )
+  }
+
+  const profileCompleteness = calculateProfileCompleteness()
+  const fullName = `${profile.first_name} ${profile.last_name}`
+
+  return (
+    <div className="px-6 py-8">
+      {/* Header */}
+      <div className="mb-8 flex items-start justify-between">
+        <div>
+          <h1 className="mb-2 text-4xl font-bold text-white">{fullName}</h1>
+          <p className="text-lg text-slate-300">
+            {playerProfile.position} • Class of {playerProfile.graduation_year}
+          </p>
+        </div>
+        <Link
+          href="/dashboard/edit-profile"
+          className="flex items-center gap-2 rounded-lg bg-orange-500 px-4 py-2 font-semibold text-white transition-colors hover:bg-orange-600"
+        >
+          <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+          </svg>
+          Edit Profile
+        </Link>
+      </div>
+
+      {/* Metrics Cards */}
+      <div className="mb-8 grid grid-cols-1 gap-4 md:grid-cols-3">
+        {/* Profile Completeness */}
+        <div className="rounded-lg bg-slate-800 p-6 border border-slate-700">
+          <div className="mb-4 flex items-center justify-between">
+            <h3 className="text-sm font-medium text-slate-400">Profile Completeness</h3>
+            <svg className="h-5 w-5 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
+            </svg>
+          </div>
+          <div className="mb-2 text-3xl font-bold text-white">{profileCompleteness}%</div>
+          <div className="h-2 w-full rounded-full bg-slate-700">
+            <div
+              className="h-2 rounded-full bg-orange-500 transition-all"
+              style={{ width: `${profileCompleteness}%` }}
+            />
+          </div>
+        </div>
+
+        {/* School Connections */}
+        <div className="rounded-lg bg-slate-800 p-6 border border-slate-700">
+          <div className="mb-4 flex items-center justify-between">
+            <h3 className="text-sm font-medium text-slate-400">School Connections</h3>
+            <svg className="h-5 w-5 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
+            </svg>
+          </div>
+          <div className="mb-1 text-3xl font-bold text-white">1</div>
+          <div className="text-sm text-slate-400">0 contacted • 0 offers</div>
+        </div>
+
+        {/* Coach Interest */}
+        <div className="rounded-lg bg-slate-800 p-6 border border-slate-700">
+          <div className="mb-4 flex items-center justify-between">
+            <h3 className="text-sm font-medium text-slate-400">Coach Interest</h3>
+            <svg className="h-5 w-5 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+            </svg>
+          </div>
+          <div className="mb-1 text-3xl font-bold text-white">1</div>
+          <div className="text-sm text-slate-400">Coaches reached out to you</div>
+        </div>
+      </div>
+
+      {/* Recruiting Analysis Section */}
+      <div className="mb-8 flex items-center justify-between rounded-lg bg-slate-800 p-6 border border-slate-700">
+        <div>
+          <h2 className="mb-2 text-xl font-bold text-white">Get Your Recruiting Analysis</h2>
+          <p className="text-slate-300">
+            Receive personalized insights about your recruiting position and next steps.
+          </p>
+        </div>
+        <button className="flex items-center gap-2 rounded-lg bg-orange-500 px-6 py-3 font-semibold text-white transition-colors hover:bg-orange-600">
+          <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z" />
+          </svg>
+          Get Analysis
+        </button>
+      </div>
+
+      {/* Tabs */}
+      <div className="mb-6 flex gap-2 border-b border-slate-700">
+        <button
+          onClick={() => setActiveTab('matches')}
+          className={`px-4 py-2 font-medium transition-colors ${
+            activeTab === 'matches'
+              ? 'border-b-2 border-orange-500 text-white'
+              : 'text-slate-400 hover:text-white'
+          }`}
+        >
+          School Matches
+        </button>
+        <button
+          onClick={() => setActiveTab('profile')}
+          className={`px-4 py-2 font-medium transition-colors ${
+            activeTab === 'profile'
+              ? 'border-b-2 border-orange-500 text-white'
+              : 'text-slate-400 hover:text-white'
+          }`}
+        >
+          Full Profile
+        </button>
+      </div>
+
+      {/* Tab Content */}
+      {activeTab === 'matches' && (
+        <div>
+          <div className="mb-4 flex items-center justify-between">
+            <h2 className="text-xl font-bold text-white">My School Connections</h2>
+            <select className="rounded-lg bg-slate-800 px-4 py-2 text-white border border-slate-700">
+              <option>All Statuses</option>
+              <option>Saved</option>
+              <option>Contacted</option>
+              <option>Offered</option>
+            </select>
+          </div>
+          
+          {/* School Connection Card - Placeholder */}
+          <div className="rounded-lg bg-slate-800 p-6 border border-slate-700">
+            <div className="mb-4 flex items-center justify-between">
+              <div>
+                <div className="mb-2 flex items-center gap-3">
+                  <h3 className="text-xl font-bold text-white">Stevens</h3>
+                  <span className="rounded-full bg-orange-500/20 px-3 py-1 text-sm font-medium text-orange-400">
+                    50% Match
+                  </span>
+                </div>
+                <p className="text-slate-400">Will Giarrusso • Head Coach</p>
+                <p className="text-slate-400">D3 • Men's</p>
+              </div>
+            </div>
+            
+            <div className="mb-4 grid grid-cols-2 gap-4">
+              <div>
+                <label className="mb-2 block text-sm font-medium text-slate-400">Status:</label>
+                <select className="w-full rounded-lg bg-slate-700 px-3 py-2 text-white border border-slate-600">
+                  <option>Saved</option>
+                  <option>Contacted</option>
+                  <option>Interested</option>
+                  <option>Offered</option>
+                </select>
+              </div>
+            </div>
+
+            <div className="mb-4">
+              <label className="mb-2 block text-sm font-medium text-slate-400">My Notes:</label>
+              <textarea
+                className="w-full rounded-lg bg-slate-700 px-3 py-2 text-white placeholder-slate-400 border border-slate-600"
+                rows={3}
+                placeholder="Add notes about this school..."
+              />
+              <button className="mt-2 flex items-center gap-2 rounded-lg bg-orange-500 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-orange-600">
+                <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                </svg>
+                Save Notes
+              </button>
+            </div>
+
+            <div className="flex gap-3">
+              <button className="flex items-center gap-2 rounded-lg bg-slate-700 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-slate-600">
+                <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+                </svg>
+                Send Message
+              </button>
+              <button className="flex items-center gap-2 rounded-lg bg-slate-700 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-slate-600">
+                <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                </svg>
+                Recalculate Match Score
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {activeTab === 'profile' && (
+        <div>
+          <h2 className="mb-6 text-2xl font-bold text-white">Complete Profile</h2>
+          
+          <div className="mb-6 grid grid-cols-1 gap-6 md:grid-cols-2">
+            {/* Athletic Information */}
+            <div className="rounded-lg bg-slate-800 p-6 border border-slate-700">
+              <h3 className="mb-4 text-lg font-semibold text-white">Athletic Information</h3>
+              <div className="space-y-3 text-slate-300">
+                <div>
+                  <span className="font-medium text-white">Position:</span> {playerProfile.position}
+                </div>
+                <div>
+                  <span className="font-medium text-white">Height / Weight:</span>{' '}
+                  {formatHeight(playerProfile.height) || <span className="text-orange-400">Not specified</span>} /{' '}
+                  {playerProfile.weight_lbs ? `${playerProfile.weight_lbs} lbs` : <span className="text-orange-400">Not specified</span>}
+                </div>
+                <div>
+                  <span className="font-medium text-white">High School:</span>{' '}
+                  {playerProfile.high_school || <span className="text-orange-400">Not specified</span>}
+                </div>
+                <div>
+                  <span className="font-medium text-white">Club Team:</span>{' '}
+                  {playerProfile.club_team || <span className="text-orange-400">Not specified</span>}
+                </div>
+              </div>
+            </div>
+
+            {/* Academic Information */}
+            <div className="rounded-lg bg-slate-800 p-6 border border-slate-700">
+              <h3 className="mb-4 text-lg font-semibold text-white">Academic Information</h3>
+              <div className="space-y-3 text-slate-300">
+                <div>
+                  <span className="font-medium text-white">GPA:</span> {playerProfile.gpa || <span className="text-orange-400">Not specified</span>}
+                </div>
+                <div>
+                  <span className="font-medium text-white">SAT Score:</span>{' '}
+                  {playerProfile.sat_score || <span className="text-orange-400">Not specified</span>}
+                </div>
+                <div>
+                  <span className="font-medium text-white">ACT Score:</span>{' '}
+                  {playerProfile.act_score || <span className="text-orange-400">Not specified</span>}
+                </div>
+                <div>
+                  <span className="font-medium text-white">Academic Interests:</span>{' '}
+                  {playerProfile.academic_interests || <span className="text-orange-400">Not specified</span>}
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Achievements */}
+          {playerProfile.achievements_awards && (
+            <div className="mb-6 rounded-lg bg-slate-800 p-6 border border-slate-700">
+              <h3 className="mb-4 text-lg font-semibold text-white">Achievements</h3>
+              <p className="text-slate-300">{playerProfile.achievements_awards}</p>
+            </div>
+          )}
+
+          {/* Highlight Video */}
+          {playerProfile.highlight_video_url && (
+            <div className="mb-6 rounded-lg bg-slate-800 p-6 border border-slate-700">
+              <h3 className="mb-4 text-lg font-semibold text-white">Highlight Video</h3>
+              <a
+                href={playerProfile.highlight_video_url}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-orange-400 hover:text-orange-300"
+              >
+                {playerProfile.highlight_video_url}
+              </a>
+            </div>
+          )}
+
+          {/* Preferences */}
+          <div className="rounded-lg bg-slate-800 p-6 border border-slate-700">
+            <h3 className="mb-4 text-lg font-semibold text-white">Preferences</h3>
+            <div className="space-y-3 text-slate-300">
+              <div>
+                <span className="font-medium text-white">Division Preference:</span>{' '}
+                {playerProfile.division_preference || <span className="text-orange-400">Not specified</span>}
+              </div>
+              <div>
+                <span className="font-medium text-white">Geographic Preference:</span>{' '}
+                {playerProfile.geographic_preference || <span className="text-orange-400">Not specified</span>}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  )
+}
