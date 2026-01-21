@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { useRouter } from 'next/navigation'
 
@@ -22,10 +22,15 @@ interface CoachProfileFormData {
   targetGraduationYears: string
 }
 
-export default function CoachProfileForm() {
+interface CoachProfileFormProps {
+  isEditMode?: boolean
+}
+
+export default function CoachProfileForm({ isEditMode = false }: CoachProfileFormProps) {
   const router = useRouter()
   const supabase = createClient()
   const [loading, setLoading] = useState(false)
+  const [loadingData, setLoadingData] = useState(isEditMode)
   const [error, setError] = useState<string | null>(null)
   const [formData, setFormData] = useState<CoachProfileFormData>({
     firstName: '',
@@ -39,6 +44,56 @@ export default function CoachProfileForm() {
     positionsRecruiting: '',
     targetGraduationYears: '',
   })
+
+  useEffect(() => {
+    async function loadProfileData() {
+      if (!isEditMode) return
+
+      try {
+        const { data: { user } } = await supabase.auth.getUser()
+        if (!user) return
+
+        // Load profile
+        const { data: profile, error: profileError } = await supabase
+          .from('profiles')
+          .select('first_name, last_name, profile_photo_url, phone_number')
+          .eq('id', user.id)
+          .single()
+
+        if (profileError) throw profileError
+
+        // Load coach profile
+        const { data: coachProfile, error: coachError } = await supabase
+          .from('coach_profiles')
+          .select('*')
+          .eq('id', user.id)
+          .single()
+
+        if (coachError && coachError.code !== 'PGRST116') throw coachError
+
+        // Populate form with existing data
+        setFormData({
+          firstName: profile.first_name || '',
+          lastName: profile.last_name || '',
+          profilePhoto: null, // Don't pre-populate file input
+          phoneNumber: profile.phone_number || '',
+          schoolName: coachProfile?.school_name || '',
+          coachingPosition: coachProfile?.coaching_position || '',
+          division: coachProfile?.division || '',
+          teamGender: coachProfile?.team_gender || '',
+          positionsRecruiting: coachProfile?.positions_recruiting || '',
+          targetGraduationYears: coachProfile?.target_graduation_years || '',
+        })
+      } catch (error: any) {
+        console.error('Error loading profile data:', error)
+        setError(error.message || 'Failed to load profile data')
+      } finally {
+        setLoadingData(false)
+      }
+    }
+
+    loadProfileData()
+  }, [isEditMode, supabase])
 
   const handleInputChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>
@@ -61,7 +116,7 @@ export default function CoachProfileForm() {
       const { data: { user } } = await supabase.auth.getUser()
       if (!user) throw new Error('Not authenticated')
 
-      let profilePhotoUrl: string | null = null
+      let profilePhotoUrl: string | null | undefined = undefined
 
       // Upload profile photo if provided
       if (formData.profilePhoto) {
@@ -83,15 +138,21 @@ export default function CoachProfileForm() {
       }
 
       // Update profile
+      const updateData: any = {
+        first_name: formData.firstName,
+        last_name: formData.lastName,
+        phone_number: formData.phoneNumber || null,
+        profile_complete: true,
+      }
+      
+      // Only update profile_photo_url if a new photo was uploaded
+      if (profilePhotoUrl !== undefined) {
+        updateData.profile_photo_url = profilePhotoUrl
+      }
+
       const { error: profileError } = await supabase
         .from('profiles')
-        .update({
-          first_name: formData.firstName,
-          last_name: formData.lastName,
-          profile_photo_url: profilePhotoUrl,
-          phone_number: formData.phoneNumber || null,
-          profile_complete: true,
-        })
+        .update(updateData)
         .eq('id', user.id)
 
       if (profileError) throw profileError
@@ -117,6 +178,14 @@ export default function CoachProfileForm() {
     } finally {
       setLoading(false)
     }
+  }
+
+  if (loadingData) {
+    return (
+      <div className="flex h-64 items-center justify-center">
+        <div className="text-slate-400">Loading profile data...</div>
+      </div>
+    )
   }
 
   return (
@@ -307,7 +376,7 @@ export default function CoachProfileForm() {
           disabled={loading}
           className="rounded-lg bg-orange-500 px-8 py-3 font-semibold text-white transition-colors hover:bg-orange-600 disabled:opacity-50"
         >
-          {loading ? 'Saving...' : 'Update Profile'}
+          {loading ? 'Saving...' : isEditMode ? 'Save Profile' : 'Complete Profile'}
         </button>
       </div>
     </form>

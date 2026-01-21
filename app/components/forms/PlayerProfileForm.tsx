@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { useRouter } from 'next/navigation'
 
@@ -36,10 +36,15 @@ interface PlayerProfileFormData {
   twitterHandle: string
 }
 
-export default function PlayerProfileForm() {
+interface PlayerProfileFormProps {
+  isEditMode?: boolean
+}
+
+export default function PlayerProfileForm({ isEditMode = false }: PlayerProfileFormProps) {
   const router = useRouter()
   const supabase = createClient()
   const [loading, setLoading] = useState(false)
+  const [loadingData, setLoadingData] = useState(isEditMode)
   const [error, setError] = useState<string | null>(null)
   const [formData, setFormData] = useState<PlayerProfileFormData>({
     firstName: '',
@@ -64,6 +69,66 @@ export default function PlayerProfileForm() {
     twitterHandle: '',
   })
 
+  useEffect(() => {
+    async function loadProfileData() {
+      if (!isEditMode) return
+
+      try {
+        const { data: { user } } = await supabase.auth.getUser()
+        if (!user) return
+
+        // Load profile
+        const { data: profile, error: profileError } = await supabase
+          .from('profiles')
+          .select('first_name, last_name, profile_photo_url, bio')
+          .eq('id', user.id)
+          .single()
+
+        if (profileError) throw profileError
+
+        // Load player profile
+        const { data: playerProfile, error: playerError } = await supabase
+          .from('player_profiles')
+          .select('*')
+          .eq('id', user.id)
+          .single()
+
+        if (playerError && playerError.code !== 'PGRST116') throw playerError
+
+        // Populate form with existing data
+        setFormData({
+          firstName: profile.first_name || '',
+          lastName: profile.last_name || '',
+          profilePhoto: null, // Don't pre-populate file input
+          bio: profile.bio || '',
+          position: playerProfile?.position || '',
+          graduationYear: playerProfile?.graduation_year?.toString() || '',
+          height: playerProfile?.height || '',
+          weightLbs: playerProfile?.weight_lbs?.toString() || '',
+          highSchool: playerProfile?.high_school || '',
+          clubTeam: playerProfile?.club_team || '',
+          achievementsAwards: playerProfile?.achievements_awards || '',
+          highlightVideoUrl: playerProfile?.highlight_video_url || '',
+          gpa: playerProfile?.gpa?.toString() || '',
+          satScore: playerProfile?.sat_score?.toString() || '',
+          actScore: playerProfile?.act_score?.toString() || '',
+          academicInterests: playerProfile?.academic_interests || '',
+          divisionPreference: playerProfile?.division_preference || '',
+          geographicPreference: playerProfile?.geographic_preference || '',
+          instagramHandle: playerProfile?.instagram_handle || '',
+          twitterHandle: playerProfile?.twitter_handle || '',
+        })
+      } catch (error: any) {
+        console.error('Error loading profile data:', error)
+        setError(error.message || 'Failed to load profile data')
+      } finally {
+        setLoadingData(false)
+      }
+    }
+
+    loadProfileData()
+  }, [isEditMode, supabase])
+
   const handleInputChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>
   ) => {
@@ -85,7 +150,7 @@ export default function PlayerProfileForm() {
       const { data: { user } } = await supabase.auth.getUser()
       if (!user) throw new Error('Not authenticated')
 
-      let profilePhotoUrl: string | null = null
+      let profilePhotoUrl: string | null | undefined = undefined
 
       // Upload profile photo if provided
       if (formData.profilePhoto) {
@@ -107,15 +172,21 @@ export default function PlayerProfileForm() {
       }
 
       // Update profile
+      const updateData: any = {
+        first_name: formData.firstName,
+        last_name: formData.lastName,
+        bio: formData.bio || null,
+        profile_complete: true,
+      }
+      
+      // Only update profile_photo_url if a new photo was uploaded
+      if (profilePhotoUrl !== undefined) {
+        updateData.profile_photo_url = profilePhotoUrl
+      }
+
       const { error: profileError } = await supabase
         .from('profiles')
-        .update({
-          first_name: formData.firstName,
-          last_name: formData.lastName,
-          profile_photo_url: profilePhotoUrl,
-          bio: formData.bio || null,
-          profile_complete: true,
-        })
+        .update(updateData)
         .eq('id', user.id)
 
       if (profileError) throw profileError
@@ -145,12 +216,20 @@ export default function PlayerProfileForm() {
 
       if (playerProfileError) throw playerProfileError
 
-      router.push('/dashboard')
+      router.push(isEditMode ? '/athlete/dashboard' : '/dashboard')
     } catch (err: any) {
       setError(err.message || 'An error occurred while saving your profile')
     } finally {
       setLoading(false)
     }
+  }
+
+  if (loadingData) {
+    return (
+      <div className="flex h-64 items-center justify-center">
+        <div className="text-slate-400">Loading profile data...</div>
+      </div>
+    )
   }
 
   return (
@@ -501,7 +580,7 @@ export default function PlayerProfileForm() {
           disabled={loading}
           className="rounded-lg bg-orange-500 px-8 py-3 font-semibold text-white transition-colors hover:bg-orange-600 disabled:opacity-50"
         >
-          {loading ? 'Saving...' : 'Complete Profile'}
+          {loading ? 'Saving...' : isEditMode ? 'Save Profile' : 'Complete Profile'}
         </button>
       </div>
     </form>

@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import Link from 'next/link'
+import { MoreVertical } from 'lucide-react'
 
 interface Profile {
   first_name: string | null
@@ -31,7 +32,7 @@ interface PlayerProfile {
 interface SchoolMatch {
   id: string
   coach_id: string
-  status: string
+  athlete_status: string
   notes: string | null
   match_score: number
   coach_profile: {
@@ -54,7 +55,7 @@ export default function AthleteDashboard() {
   const [activeTab, setActiveTab] = useState<'matches' | 'profile'>('matches')
   const [schoolMatches, setSchoolMatches] = useState<SchoolMatch[]>([])
   const [loadingMatches, setLoadingMatches] = useState(false)
-  const [statusFilter, setStatusFilter] = useState('')
+  const [openMenuId, setOpenMenuId] = useState<string | null>(null)
   const router = useRouter()
   const supabase = createClient()
 
@@ -106,10 +107,10 @@ export default function AthleteDashboard() {
         const { data: { user } } = await supabase.auth.getUser()
         if (!user) return
 
-        // Fetch school matches
+        // Fetch school matches (players can only see athlete_status, not coach_status)
         const { data: matches, error: matchesError } = await supabase
           .from('school_matches')
-          .select('id, coach_id, status, notes, match_score')
+          .select('id, coach_id, athlete_status, notes, match_score')
           .eq('player_id', user.id)
           .order('created_at', { ascending: false })
 
@@ -144,7 +145,7 @@ export default function AthleteDashboard() {
           return {
             id: match.id,
             coach_id: match.coach_id,
-            status: match.status,
+            athlete_status: match.athlete_status || 'interested',
             notes: match.notes,
             match_score: match.match_score || 50,
             coach_profile: coachProfile ? {
@@ -172,11 +173,11 @@ export default function AthleteDashboard() {
     loadSchoolMatches()
   }, [activeTab, supabase])
 
-  const handleStatusUpdate = async (matchId: string, newStatus: string) => {
+  const handleMarkNotInterested = async (matchId: string) => {
     try {
       const { error } = await supabase
         .from('school_matches')
-        .update({ status: newStatus })
+        .update({ athlete_status: 'not_good_fit' })
         .eq('id', matchId)
 
       if (error) throw error
@@ -184,14 +185,46 @@ export default function AthleteDashboard() {
       // Update local state
       setSchoolMatches((prev) =>
         prev.map((match) =>
-          match.id === matchId ? { ...match, status: newStatus } : match
+          match.id === matchId ? { ...match, athlete_status: 'not_good_fit' } : match
         )
       )
+      setOpenMenuId(null)
     } catch (error) {
-      console.error('Error updating status:', error)
+      console.error('Error marking as not interested:', error)
       alert('Failed to update status. Please try again.')
     }
   }
+
+  const getStatusLabel = (status: string) => {
+    switch (status) {
+      case 'interested':
+        return 'Interested'
+      case 'not_good_fit':
+        return 'Not Interested'
+      case 'messaged':
+        return 'Messaged'
+      case 'offered':
+        return 'Offered'
+      default:
+        return status
+    }
+  }
+
+  const getStatusColor = (status: string) => {
+    switch (status) {
+      case 'interested':
+        return 'bg-blue-500/20 text-blue-400'
+      case 'not_good_fit':
+        return 'bg-red-500/20 text-red-400'
+      case 'messaged':
+        return 'bg-green-500/20 text-green-400'
+      case 'offered':
+        return 'bg-orange-500/20 text-orange-400'
+      default:
+        return 'bg-slate-500/20 text-slate-400'
+    }
+  }
+
 
   const handleNotesUpdate = async (matchId: string, notes: string) => {
     try {
@@ -281,7 +314,7 @@ export default function AthleteDashboard() {
           </p>
         </div>
         <Link
-          href="/dashboard/edit-profile"
+          href="/athlete/edit-profile"
           className="flex items-center gap-2 rounded-lg bg-orange-500 px-4 py-2 font-semibold text-white transition-colors hover:bg-orange-600"
         >
           <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -320,8 +353,7 @@ export default function AthleteDashboard() {
           </div>
           <div className="mb-1 text-3xl font-bold text-white">{schoolMatches.length}</div>
           <div className="text-sm text-slate-400">
-            {schoolMatches.filter((m) => m.status === 'contacted').length} contacted •{' '}
-            {schoolMatches.filter((m) => m.status === 'offered').length} offers
+            {schoolMatches.length} connections
           </div>
         </div>
 
@@ -382,54 +414,68 @@ export default function AthleteDashboard() {
       {/* Tab Content */}
       {activeTab === 'matches' && (
         <div>
-          <div className="mb-4 flex items-center justify-between">
+          <div className="mb-4">
             <h2 className="text-xl font-bold text-white">My School Connections</h2>
-            <select
-              value={statusFilter}
-              onChange={(e) => setStatusFilter(e.target.value)}
-              className="rounded-lg bg-slate-800 px-4 py-2 text-white border border-slate-700"
-            >
-              <option value="">All Statuses</option>
-              <option value="saved">Saved</option>
-              <option value="contacted">Contacted</option>
-              <option value="interested">Interested</option>
-              <option value="offered">Offered</option>
-            </select>
           </div>
 
           {loadingMatches ? (
             <div className="flex h-64 items-center justify-center">
               <div className="text-slate-400">Loading connections...</div>
             </div>
-          ) : schoolMatches.filter((match) => !statusFilter || match.status === statusFilter).length === 0 ? (
+          ) : schoolMatches.length === 0 ? (
             <div className="rounded-lg bg-slate-800 p-12 text-center border border-slate-700">
               <svg className="mx-auto h-12 w-12 text-slate-400 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
               </svg>
               <h3 className="text-lg font-semibold text-white mb-2">No connections yet</h3>
               <p className="text-slate-400 mb-4">
-                {statusFilter
-                  ? 'No connections match this status filter.'
-                  : 'Start connecting with coaches from the Connect page to see them here.'}
+                Start connecting with coaches from the Connect page to see them here.
               </p>
-              {!statusFilter && (
-                <Link
-                  href="/dashboard/athlete/connect"
-                  className="inline-flex items-center gap-2 rounded-lg bg-orange-500 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-orange-600"
-                >
-                  Browse Coaches
-                </Link>
-              )}
+              <Link
+                href="/dashboard/athlete/connect"
+                className="inline-flex items-center gap-2 rounded-lg bg-orange-500 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-orange-600"
+              >
+                Browse Coaches
+              </Link>
             </div>
           ) : (
             <div className="space-y-4">
-              {schoolMatches
-                .filter((match) => !statusFilter || match.status === statusFilter)
-                .map((match) => {
+              {schoolMatches.map((match) => {
                   const coachName = `${match.coach_info.first_name || ''} ${match.coach_info.last_name || ''}`.trim() || 'Coach'
                   
                   return (
-                    <div key={match.id} className="rounded-lg bg-slate-800 p-6 border border-slate-700">
+                    <div key={match.id} className="rounded-lg bg-slate-800 p-6 border border-slate-700 relative">
+                      {/* Three-dot menu */}
+                      <div className="absolute top-4 right-4">
+                        <div className="relative">
+                          <button
+                            onClick={() => setOpenMenuId(openMenuId === match.id ? null : match.id)}
+                            className="rounded-lg p-2 text-slate-400 hover:bg-slate-700 hover:text-white transition-colors"
+                          >
+                            <MoreVertical className="h-5 w-5" />
+                          </button>
+                          {openMenuId === match.id && (
+                            <>
+                              <div
+                                className="fixed inset-0 z-10"
+                                onClick={() => setOpenMenuId(null)}
+                              />
+                              <div className="absolute right-0 mt-2 w-48 rounded-lg bg-slate-700 border border-slate-600 shadow-lg z-20">
+                                <button
+                                  onClick={(e) => {
+                                    e.stopPropagation()
+                                    handleMarkNotInterested(match.id)
+                                  }}
+                                  className="w-full px-4 py-2 text-left text-sm text-white hover:bg-slate-600 transition-colors rounded-lg"
+                                >
+                                  Mark as Not Interested
+                                </button>
+                              </div>
+                            </>
+                          )}
+                        </div>
+                      </div>
+
                       <div className="mb-4 flex items-center justify-between">
                         <div className="flex items-center gap-4">
                           {match.coach_info.profile_photo_url ? (
@@ -448,22 +494,16 @@ export default function AthleteDashboard() {
                           <div>
                             {match.coach_profile ? (
                               <>
-                                <div className="mb-1 flex items-center gap-3">
+                                <div className="mb-1">
                                   <h3 className="text-xl font-bold text-white">{match.coach_profile.school_name}</h3>
-                                  <span className="rounded-full bg-orange-500/20 px-3 py-1 text-sm font-medium text-orange-400">
-                                    {match.match_score}% Match
-                                  </span>
                                 </div>
                                 <p className="text-slate-400">{coachName} • {match.coach_profile.coaching_position}</p>
                                 <p className="text-slate-400">{match.coach_profile.division} • {match.coach_profile.team_gender}</p>
                               </>
                             ) : (
                               <>
-                                <div className="mb-1 flex items-center gap-3">
+                                <div className="mb-1">
                                   <h3 className="text-xl font-bold text-white">Unknown School</h3>
-                                  <span className="rounded-full bg-orange-500/20 px-3 py-1 text-sm font-medium text-orange-400">
-                                    {match.match_score}% Match
-                                  </span>
                                 </div>
                                 <p className="text-slate-400">{coachName}</p>
                               </>
@@ -472,19 +512,11 @@ export default function AthleteDashboard() {
                         </div>
                       </div>
 
-                      <div className="mb-4 grid grid-cols-2 gap-4">
-                        <div>
-                          <label className="mb-2 block text-sm font-medium text-slate-400">Status:</label>
-                          <select
-                            value={match.status}
-                            onChange={(e) => handleStatusUpdate(match.id, e.target.value)}
-                            className="w-full rounded-lg bg-slate-700 px-3 py-2 text-white border border-slate-600"
-                          >
-                            <option value="saved">Saved</option>
-                            <option value="contacted">Contacted</option>
-                            <option value="interested">Interested</option>
-                            <option value="offered">Offered</option>
-                          </select>
+                      {/* Status Display */}
+                      <div className="mb-4">
+                        <label className="mb-2 block text-sm font-medium text-slate-400">My Status:</label>
+                        <div className={`inline-flex items-center rounded-full px-3 py-1 text-sm font-medium ${getStatusColor(match.athlete_status)}`}>
+                          {getStatusLabel(match.athlete_status)}
                         </div>
                       </div>
 
@@ -501,17 +533,30 @@ export default function AthleteDashboard() {
                       </div>
 
                       <div className="flex gap-3">
-                        <button className="flex items-center gap-2 rounded-lg bg-slate-700 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-slate-600">
+                        <button
+                          onClick={async () => {
+                            const { data: { user } } = await supabase.auth.getUser()
+                            if (!user) return
+
+                            try {
+                              const { data: conversationId, error } = await supabase.rpc('get_or_create_conversation', {
+                                user1_id: user.id,
+                                user2_id: match.coach_id,
+                              })
+
+                              if (error) throw error
+                              router.push(`/athlete/messages?coach=${match.coach_id}`)
+                            } catch (error) {
+                              console.error('Error starting conversation:', error)
+                              alert('Failed to start conversation. Please try again.')
+                            }
+                          }}
+                          className="flex items-center gap-2 rounded-lg bg-slate-700 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-slate-600"
+                        >
                           <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
                           </svg>
                           Send Message
-                        </button>
-                        <button className="flex items-center gap-2 rounded-lg bg-slate-700 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-slate-600">
-                          <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-                          </svg>
-                          Recalculate Match Score
                         </button>
                       </div>
                     </div>

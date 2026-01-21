@@ -107,7 +107,7 @@ export default function CoachDashboard() {
           </p>
         </div>
         <Link
-          href="/dashboard/edit-profile"
+          href="/coach/edit-profile"
           className="flex items-center gap-2 rounded-lg bg-orange-500 px-4 py-2 font-semibold text-white transition-colors hover:bg-orange-600"
         >
           <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">

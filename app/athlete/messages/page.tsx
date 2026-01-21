@@ -1,7 +1,7 @@
 'use client'
 
-import { useState, useEffect, useRef } from 'react'
-import { useRouter } from 'next/navigation'
+import { useState, useEffect, useRef, Suspense } from 'react'
+import { useRouter, useSearchParams } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import { MessageCircle, Send } from 'lucide-react'
 
@@ -33,8 +33,9 @@ interface Message {
   conversation_id?: string
 }
 
-export default function AthleteMessagesPage() {
+function AthleteMessagesContent() {
   const router = useRouter()
+  const searchParams = useSearchParams()
   const supabase = createClient()
   const [conversations, setConversations] = useState<Conversation[]>([])
   const [selectedConversation, setSelectedConversation] = useState<string | null>(null)
@@ -113,12 +114,30 @@ export default function AthleteMessagesPage() {
     }
   }, [currentUser, conversations, selectedConversation, supabase])
 
-  // Auto-select first conversation if none selected
+  // Auto-select conversation based on query parameter or first conversation
   useEffect(() => {
     if (!selectedConversation && conversations.length > 0) {
-      setSelectedConversation(conversations[0].id)
+      const coachId = searchParams.get('coach')
+      if (coachId) {
+        // Find conversation with this coach
+        const conversation = conversations.find(
+          (c) => c.other_user.id === coachId
+        )
+        if (conversation) {
+          setSelectedConversation(conversation.id)
+          // Clear the query parameter after selecting
+          const newUrl = new URL(window.location.href)
+          newUrl.searchParams.delete('coach')
+          router.replace(newUrl.pathname + newUrl.search)
+        } else {
+          // If conversation not found yet, select first one
+          setSelectedConversation(conversations[0].id)
+        }
+      } else {
+        setSelectedConversation(conversations[0].id)
+      }
     }
-  }, [conversations, selectedConversation])
+  }, [conversations, selectedConversation, searchParams, router])
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
@@ -484,5 +503,17 @@ export default function AthleteMessagesPage() {
         )}
       </div>
     </div>
+  )
+}
+
+export default function AthleteMessagesPage() {
+  return (
+    <Suspense fallback={
+      <div className="flex h-screen items-center justify-center">
+        <div className="text-slate-400">Loading...</div>
+      </div>
+    }>
+      <AthleteMessagesContent />
+    </Suspense>
   )
 }

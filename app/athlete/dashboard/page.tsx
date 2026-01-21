@@ -4,11 +4,13 @@ import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import Link from 'next/link'
+import { MoreVertical, Target, CheckCircle2, TrendingUp, Clock, GraduationCap } from 'lucide-react'
 
 interface Profile {
   first_name: string | null
   last_name: string | null
   profile_photo_url: string | null
+  bio: string | null
 }
 
 interface PlayerProfile {
@@ -26,12 +28,13 @@ interface PlayerProfile {
   academic_interests: string | null
   division_preference: string | null
   geographic_preference: string | null
+  recruiting_analysis?: RecruitingAnalysis | null
 }
 
 interface SchoolMatch {
   id: string
   coach_id: string
-  status: string
+  athlete_status: string
   notes: string | null
   match_score: number
   coach_profile: {
@@ -47,14 +50,26 @@ interface SchoolMatch {
   }
 }
 
+interface RecruitingAnalysis {
+  overallAssessment: string
+  academicAnalysis: string
+  athleticAnalysis: string
+  targetDivisions: string[]
+  strengths: string[]
+  areasForImprovement: string[]
+  nextSteps: string[]
+}
+
 export default function AthleteDashboard() {
   const [profile, setProfile] = useState<Profile | null>(null)
   const [playerProfile, setPlayerProfile] = useState<PlayerProfile | null>(null)
   const [loading, setLoading] = useState(true)
-  const [activeTab, setActiveTab] = useState<'matches' | 'profile'>('matches')
+  const [activeTab, setActiveTab] = useState<'matches' | 'profile' | 'analysis'>('matches')
   const [schoolMatches, setSchoolMatches] = useState<SchoolMatch[]>([])
   const [loadingMatches, setLoadingMatches] = useState(false)
-  const [statusFilter, setStatusFilter] = useState('')
+  const [openMenuId, setOpenMenuId] = useState<string | null>(null)
+  const [analysis, setAnalysis] = useState<RecruitingAnalysis | null>(null)
+  const [loadingAnalysis, setLoadingAnalysis] = useState(false)
   const router = useRouter()
   const supabase = createClient()
 
@@ -70,7 +85,7 @@ export default function AthleteDashboard() {
         // Load profile
         const { data: profileData, error: profileError } = await supabase
           .from('profiles')
-          .select('first_name, last_name, profile_photo_url')
+          .select('first_name, last_name, profile_photo_url, bio')
           .eq('id', user.id)
           .single()
 
@@ -87,6 +102,11 @@ export default function AthleteDashboard() {
 
         setProfile(profileData)
         setPlayerProfile(playerData)
+
+        // Load existing analysis if available
+        if (playerData?.recruiting_analysis) {
+          setAnalysis(playerData.recruiting_analysis as RecruitingAnalysis)
+        }
       } catch (error) {
         console.error('Error loading data:', error)
       } finally {
@@ -106,10 +126,10 @@ export default function AthleteDashboard() {
         const { data: { user } } = await supabase.auth.getUser()
         if (!user) return
 
-        // Fetch school matches
+        // Fetch school matches (players can only see athlete_status, not coach_status)
         const { data: matches, error: matchesError } = await supabase
           .from('school_matches')
-          .select('id, coach_id, status, notes, match_score')
+          .select('id, coach_id, athlete_status, notes, match_score')
           .eq('player_id', user.id)
           .order('created_at', { ascending: false })
 
@@ -144,7 +164,7 @@ export default function AthleteDashboard() {
           return {
             id: match.id,
             coach_id: match.coach_id,
-            status: match.status,
+            athlete_status: match.athlete_status || 'interested',
             notes: match.notes,
             match_score: match.match_score || 50,
             coach_profile: coachProfile ? {
@@ -172,11 +192,11 @@ export default function AthleteDashboard() {
     loadSchoolMatches()
   }, [activeTab, supabase])
 
-  const handleStatusUpdate = async (matchId: string, newStatus: string) => {
+  const handleMarkNotInterested = async (matchId: string) => {
     try {
       const { error } = await supabase
         .from('school_matches')
-        .update({ status: newStatus })
+        .update({ athlete_status: 'not_good_fit' })
         .eq('id', matchId)
 
       if (error) throw error
@@ -184,14 +204,118 @@ export default function AthleteDashboard() {
       // Update local state
       setSchoolMatches((prev) =>
         prev.map((match) =>
-          match.id === matchId ? { ...match, status: newStatus } : match
+          match.id === matchId ? { ...match, athlete_status: 'not_good_fit' } : match
         )
       )
+      setOpenMenuId(null)
     } catch (error) {
-      console.error('Error updating status:', error)
+      console.error('Error marking as not interested:', error)
       alert('Failed to update status. Please try again.')
     }
   }
+
+  const getStatusLabel = (status: string) => {
+    switch (status) {
+      case 'interested':
+        return 'Interested'
+      case 'not_good_fit':
+        return 'Not Interested'
+      case 'messaged':
+        return 'Messaged'
+      case 'offered':
+        return 'Offered'
+      default:
+        return status
+    }
+  }
+
+  const getStatusColor = (status: string) => {
+    switch (status) {
+      case 'interested':
+        return 'bg-blue-500/20 text-blue-400'
+      case 'not_good_fit':
+        return 'bg-red-500/20 text-red-400'
+      case 'messaged':
+        return 'bg-green-500/20 text-green-400'
+      case 'offered':
+        return 'bg-orange-500/20 text-orange-400'
+      default:
+        return 'bg-slate-500/20 text-slate-400'
+    }
+  }
+
+  const handleGetAnalysis = async () => {
+    if (!profile || !playerProfile) {
+      alert('Profile data not loaded. Please try again.')
+      return
+    }
+
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) {
+      alert('User not authenticated. Please try again.')
+      return
+    }
+
+    setLoadingAnalysis(true)
+    try {
+      // Prepare profile data to send to OpenAI
+      const profileData = {
+        name: `${profile.first_name} ${profile.last_name}`,
+        bio: profile.bio,
+        position: playerProfile.position,
+        graduation_year: playerProfile.graduation_year,
+        height: playerProfile.height,
+        weight_lbs: playerProfile.weight_lbs,
+        high_school: playerProfile.high_school,
+        club_team: playerProfile.club_team,
+        achievements_awards: playerProfile.achievements_awards,
+        highlight_video_url: playerProfile.highlight_video_url,
+        gpa: playerProfile.gpa,
+        sat_score: playerProfile.sat_score,
+        act_score: playerProfile.act_score,
+        academic_interests: playerProfile.academic_interests,
+        division_preference: playerProfile.division_preference,
+        geographic_preference: playerProfile.geographic_preference,
+      }
+
+      const response = await fetch('/api/analyze-profile', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ profileData }),
+      })
+
+      if (!response.ok) {
+        const error = await response.json()
+        throw new Error(error.error || 'Failed to generate analysis')
+      }
+
+      const data = await response.json()
+      const generatedAnalysis = data.analysis
+      setAnalysis(generatedAnalysis)
+      
+      // Save analysis to Supabase
+      const { error: saveError } = await supabase
+        .from('player_profiles')
+        .update({ recruiting_analysis: generatedAnalysis })
+        .eq('id', user.id)
+
+      if (saveError) {
+        console.error('Error saving analysis to Supabase:', saveError)
+        // Analysis is still displayed even if save fails
+      }
+
+      // Switch to analysis tab after generation
+      setActiveTab('analysis')
+    } catch (error: any) {
+      console.error('Error generating analysis:', error)
+      alert(error.message || 'Failed to generate analysis. Please try again.')
+    } finally {
+      setLoadingAnalysis(false)
+    }
+  }
+
 
   const handleNotesUpdate = async (matchId: string, notes: string) => {
     try {
@@ -281,7 +405,7 @@ export default function AthleteDashboard() {
           </p>
         </div>
         <Link
-          href="/dashboard/edit-profile"
+          href="/athlete/edit-profile"
           className="flex items-center gap-2 rounded-lg bg-orange-500 px-4 py-2 font-semibold text-white transition-colors hover:bg-orange-600"
         >
           <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -320,8 +444,8 @@ export default function AthleteDashboard() {
           </div>
           <div className="mb-1 text-3xl font-bold text-white">{schoolMatches.length}</div>
           <div className="text-sm text-slate-400">
-            {schoolMatches.filter((m) => m.status === 'contacted').length} contacted •{' '}
-            {schoolMatches.filter((m) => m.status === 'offered').length} offers
+            {schoolMatches.filter((m) => m.athlete_status === 'messaged').length} contacted •{' '}
+            {schoolMatches.filter((m) => m.athlete_status === 'offered').length} offers
           </div>
         </div>
 
@@ -340,20 +464,27 @@ export default function AthleteDashboard() {
       </div>
 
       {/* Recruiting Analysis Section */}
-      <div className="mb-8 flex items-center justify-between rounded-lg bg-slate-800 p-6 border border-slate-700">
-        <div>
-          <h2 className="mb-2 text-xl font-bold text-white">Get Your Recruiting Analysis</h2>
-          <p className="text-slate-300">
-            Receive personalized insights about your recruiting position and next steps.
-          </p>
+      {!analysis && (
+        <div className="mb-8 flex items-center justify-between rounded-lg bg-slate-800 p-6 border border-slate-700">
+          <div>
+            <h2 className="mb-2 text-xl font-bold text-white">Get Your Recruiting Analysis</h2>
+            <p className="text-slate-300">
+              Receive personalized insights about your recruiting position and next steps.
+            </p>
+          </div>
+          <button
+            onClick={handleGetAnalysis}
+            disabled={loadingAnalysis}
+            className="flex items-center gap-2 rounded-lg bg-orange-500 px-6 py-3 font-semibold text-white transition-colors hover:bg-orange-600 disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z" />
+            </svg>
+            {loadingAnalysis ? 'Generating...' : 'Get Analysis'}
+          </button>
         </div>
-        <button className="flex items-center gap-2 rounded-lg bg-orange-500 px-6 py-3 font-semibold text-white transition-colors hover:bg-orange-600">
-          <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z" />
-          </svg>
-          Get Analysis
-        </button>
-      </div>
+      )}
+
 
       {/* Tabs */}
       <div className="mb-6 flex gap-2 border-b border-slate-700">
@@ -377,59 +508,85 @@ export default function AthleteDashboard() {
         >
           Full Profile
         </button>
+        {analysis && (
+          <button
+            onClick={() => setActiveTab('analysis')}
+            className={`px-4 py-2 font-medium transition-colors ${
+              activeTab === 'analysis'
+                ? 'border-b-2 border-orange-500 text-white'
+                : 'text-slate-400 hover:text-white'
+            }`}
+          >
+            Recruiting Analysis
+          </button>
+        )}
       </div>
 
       {/* Tab Content */}
       {activeTab === 'matches' && (
         <div>
-          <div className="mb-4 flex items-center justify-between">
+          <div className="mb-4">
             <h2 className="text-xl font-bold text-white">My School Connections</h2>
-            <select
-              value={statusFilter}
-              onChange={(e) => setStatusFilter(e.target.value)}
-              className="rounded-lg bg-slate-800 px-4 py-2 text-white border border-slate-700"
-            >
-              <option value="">All Statuses</option>
-              <option value="saved">Saved</option>
-              <option value="contacted">Contacted</option>
-              <option value="interested">Interested</option>
-              <option value="offered">Offered</option>
-            </select>
           </div>
 
           {loadingMatches ? (
             <div className="flex h-64 items-center justify-center">
               <div className="text-slate-400">Loading connections...</div>
             </div>
-          ) : schoolMatches.filter((match) => !statusFilter || match.status === statusFilter).length === 0 ? (
+          ) : schoolMatches.length === 0 ? (
             <div className="rounded-lg bg-slate-800 p-12 text-center border border-slate-700">
               <svg className="mx-auto h-12 w-12 text-slate-400 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
               </svg>
               <h3 className="text-lg font-semibold text-white mb-2">No connections yet</h3>
               <p className="text-slate-400 mb-4">
-                {statusFilter
-                  ? 'No connections match this status filter.'
-                  : 'Start connecting with coaches from the Connect page to see them here.'}
+                Start connecting with coaches from the Connect page to see them here.
               </p>
-              {!statusFilter && (
-                <Link
-                  href="/athlete/connect"
-                  className="inline-flex items-center gap-2 rounded-lg bg-orange-500 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-orange-600"
-                >
-                  Browse Coaches
-                </Link>
-              )}
+              <Link
+                href="/athlete/connect"
+                className="inline-flex items-center gap-2 rounded-lg bg-orange-500 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-orange-600"
+              >
+                Browse Coaches
+              </Link>
             </div>
           ) : (
             <div className="space-y-4">
-              {schoolMatches
-                .filter((match) => !statusFilter || match.status === statusFilter)
-                .map((match) => {
+              {schoolMatches.map((match) => {
                   const coachName = `${match.coach_info.first_name || ''} ${match.coach_info.last_name || ''}`.trim() || 'Coach'
                   
                   return (
-                    <div key={match.id} className="rounded-lg bg-slate-800 p-6 border border-slate-700">
+                    <div key={match.id} className="rounded-lg bg-slate-800 p-6 border border-slate-700 relative">
+                      {/* Three-dot menu */}
+                      <div className="absolute top-4 right-4">
+                        <div className="relative">
+                          <button
+                            onClick={() => setOpenMenuId(openMenuId === match.id ? null : match.id)}
+                            className="rounded-lg p-2 text-slate-400 hover:bg-slate-700 hover:text-white transition-colors"
+                          >
+                            <MoreVertical className="h-5 w-5" />
+                          </button>
+                          {openMenuId === match.id && (
+                            <>
+                              <div
+                                className="fixed inset-0 z-10"
+                                onClick={() => setOpenMenuId(null)}
+                              />
+                              <div className="absolute right-0 mt-2 w-48 rounded-lg bg-slate-700 border border-slate-600 shadow-lg z-20">
+                                <button
+                                  onClick={(e) => {
+                                    e.stopPropagation()
+                                    handleMarkNotInterested(match.id)
+                                  }}
+                                  className="w-full px-4 py-2 text-left text-sm text-white hover:bg-slate-600 transition-colors rounded-lg"
+                                >
+                                  Mark as Not Interested
+                                </button>
+                              </div>
+                            </>
+                          )}
+                        </div>
+                      </div>
+
                       <div className="mb-4 flex items-center justify-between">
                         <div className="flex items-center gap-4">
                           {match.coach_info.profile_photo_url ? (
@@ -448,22 +605,16 @@ export default function AthleteDashboard() {
                           <div>
                             {match.coach_profile ? (
                               <>
-                                <div className="mb-1 flex items-center gap-3">
+                                <div className="mb-1">
                                   <h3 className="text-xl font-bold text-white">{match.coach_profile.school_name}</h3>
-                                  <span className="rounded-full bg-orange-500/20 px-3 py-1 text-sm font-medium text-orange-400">
-                                    {match.match_score}% Match
-                                  </span>
                                 </div>
                                 <p className="text-slate-400">{coachName} • {match.coach_profile.coaching_position}</p>
                                 <p className="text-slate-400">{match.coach_profile.division} • {match.coach_profile.team_gender}</p>
                               </>
                             ) : (
                               <>
-                                <div className="mb-1 flex items-center gap-3">
+                                <div className="mb-1">
                                   <h3 className="text-xl font-bold text-white">Unknown School</h3>
-                                  <span className="rounded-full bg-orange-500/20 px-3 py-1 text-sm font-medium text-orange-400">
-                                    {match.match_score}% Match
-                                  </span>
                                 </div>
                                 <p className="text-slate-400">{coachName}</p>
                               </>
@@ -472,19 +623,11 @@ export default function AthleteDashboard() {
                         </div>
                       </div>
 
-                      <div className="mb-4 grid grid-cols-2 gap-4">
-                        <div>
-                          <label className="mb-2 block text-sm font-medium text-slate-400">Status:</label>
-                          <select
-                            value={match.status}
-                            onChange={(e) => handleStatusUpdate(match.id, e.target.value)}
-                            className="w-full rounded-lg bg-slate-700 px-3 py-2 text-white border border-slate-600"
-                          >
-                            <option value="saved">Saved</option>
-                            <option value="contacted">Contacted</option>
-                            <option value="interested">Interested</option>
-                            <option value="offered">Offered</option>
-                          </select>
+                      {/* Status Display */}
+                      <div className="mb-4">
+                        <label className="mb-2 block text-sm font-medium text-slate-400">My Status:</label>
+                        <div className={`inline-flex items-center rounded-full px-3 py-1 text-sm font-medium ${getStatusColor(match.athlete_status)}`}>
+                          {getStatusLabel(match.athlete_status)}
                         </div>
                       </div>
 
@@ -501,17 +644,30 @@ export default function AthleteDashboard() {
                       </div>
 
                       <div className="flex gap-3">
-                        <button className="flex items-center gap-2 rounded-lg bg-slate-700 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-slate-600">
+                        <button
+                          onClick={async () => {
+                            const { data: { user } } = await supabase.auth.getUser()
+                            if (!user) return
+
+                            try {
+                              const { data: conversationId, error } = await supabase.rpc('get_or_create_conversation', {
+                                user1_id: user.id,
+                                user2_id: match.coach_id,
+                              })
+
+                              if (error) throw error
+                              router.push(`/athlete/messages?coach=${match.coach_id}`)
+                            } catch (error) {
+                              console.error('Error starting conversation:', error)
+                              alert('Failed to start conversation. Please try again.')
+                            }
+                          }}
+                          className="flex items-center gap-2 rounded-lg bg-slate-700 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-slate-600"
+                        >
                           <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
                           </svg>
                           Send Message
-                        </button>
-                        <button className="flex items-center gap-2 rounded-lg bg-slate-700 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-slate-600">
-                          <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-                          </svg>
-                          Recalculate Match Score
                         </button>
                       </div>
                     </div>
@@ -612,6 +768,126 @@ export default function AthleteDashboard() {
           </div>
         </div>
       )}
+
+      {activeTab === 'analysis' && (
+        <div>
+          {loadingAnalysis ? (
+            <div className="flex h-64 items-center justify-center">
+              <div className="text-slate-400">Generating your recruiting analysis...</div>
+            </div>
+          ) : analysis ? (
+            <div className="space-y-6">
+              {/* Overall Assessment */}
+              <div className="rounded-lg bg-slate-800 p-6 border border-slate-700">
+                <div className="mb-4 flex items-center gap-3">
+                  <Target className="h-6 w-6 text-orange-400" />
+                  <h2 className="text-xl font-semibold text-white">Overall Assessment</h2>
+                </div>
+                <p className="text-slate-300 leading-relaxed">{analysis.overallAssessment}</p>
+              </div>
+
+              {/* Analysis Cards */}
+              <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
+                {/* Academic Analysis */}
+                <div className="rounded-lg bg-slate-800 p-6 border border-slate-700">
+                  <div className="mb-4 flex items-center gap-3">
+                    <GraduationCap className="h-5 w-5 text-orange-400" />
+                    <h3 className="text-lg font-semibold text-white">Academic Analysis</h3>
+                  </div>
+                  <p className="text-slate-300 leading-relaxed">{analysis.academicAnalysis}</p>
+                </div>
+
+                {/* Athletic Analysis */}
+                <div className="rounded-lg bg-slate-800 p-6 border border-slate-700">
+                  <div className="mb-4 flex items-center gap-3">
+                    <Target className="h-5 w-5 text-orange-400" />
+                    <h3 className="text-lg font-semibold text-white">Athletic Analysis</h3>
+                  </div>
+                  <p className="text-slate-300 leading-relaxed">{analysis.athleticAnalysis}</p>
+                </div>
+              </div>
+
+              {/* Target Divisions */}
+              <div className="rounded-lg bg-slate-800 p-6 border border-slate-700">
+                <h3 className="mb-4 text-lg font-semibold text-white">Realistic division levels based on your profile</h3>
+                <div className="flex flex-wrap gap-3">
+                  {analysis.targetDivisions.map((division, index) => (
+                    <span
+                      key={index}
+                      className="rounded-full bg-orange-500/20 px-4 py-2 text-sm font-medium text-orange-400 border border-orange-500/30"
+                    >
+                      {division}
+                    </span>
+                  ))}
+                </div>
+              </div>
+
+              {/* Strengths and Areas for Improvement */}
+              <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
+                {/* Strengths */}
+                <div className="rounded-lg bg-slate-800 p-6 border border-slate-700">
+                  <div className="mb-4 flex items-center gap-3">
+                    <CheckCircle2 className="h-5 w-5 text-green-400" />
+                    <h3 className="text-lg font-semibold text-white">Strengths</h3>
+                  </div>
+                  <ul className="space-y-2">
+                    {analysis.strengths.map((strength, index) => (
+                      <li key={index} className="flex items-start gap-2 text-slate-300">
+                        <span className="text-green-400 mt-1">•</span>
+                        <span>{strength}</span>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+
+                {/* Areas for Improvement */}
+                <div className="rounded-lg bg-slate-800 p-6 border border-slate-700">
+                  <div className="mb-4 flex items-center gap-3">
+                    <TrendingUp className="h-5 w-5 text-blue-400" />
+                    <h3 className="text-lg font-semibold text-white">Areas for Improvement</h3>
+                  </div>
+                  <ul className="space-y-2">
+                    {analysis.areasForImprovement.map((area, index) => (
+                      <li key={index} className="flex items-start gap-2 text-slate-300">
+                        <span className="text-blue-400 mt-1">•</span>
+                        <span>{area}</span>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              </div>
+
+              {/* Next Steps */}
+              <div className="rounded-lg bg-slate-800 p-6 border border-slate-700">
+                <div className="mb-4 flex items-center gap-3">
+                  <Clock className="h-5 w-5 text-orange-400" />
+                  <h3 className="text-lg font-semibold text-white">Next Steps</h3>
+                </div>
+                <p className="mb-4 text-sm text-slate-400">Recommended actions to improve your recruiting position:</p>
+                <ol className="space-y-3">
+                  {analysis.nextSteps.map((step, index) => (
+                    <li key={index} className="flex items-start gap-3 text-slate-300">
+                      <span className="flex h-6 w-6 items-center justify-center rounded-full bg-orange-500/20 text-sm font-semibold text-orange-400">
+                        {index + 1}
+                      </span>
+                      <span className="flex-1 pt-0.5">{step}</span>
+                    </li>
+                  ))}
+                </ol>
+              </div>
+            </div>
+          ) : (
+            <div className="rounded-lg bg-slate-800 p-12 text-center border border-slate-700">
+              <Target className="mx-auto h-12 w-12 text-slate-400 mb-4" />
+              <h3 className="text-lg font-semibold text-white mb-2">No Analysis Yet</h3>
+              <p className="text-slate-400 mb-4">
+                Click "Get Analysis" above to generate your personalized recruiting analysis.
+              </p>
+            </div>
+          )}
+        </div>
+      )}
+
     </div>
   )
 }

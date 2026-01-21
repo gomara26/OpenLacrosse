@@ -243,6 +243,18 @@ export default function CoachMessagesPage() {
     setSending(true)
     try {
       const messageText = messageContent.trim()
+      
+      // Get conversation to find the other participant (player)
+      const { data: conversation } = await supabase
+        .from('conversations')
+        .select('participant1_id, participant2_id')
+        .eq('id', selectedConversation)
+        .single()
+
+      const otherUserId = conversation?.participant1_id === currentUser 
+        ? conversation.participant2_id 
+        : conversation?.participant1_id
+
       const { error } = await supabase
         .from('messages')
         .insert({
@@ -252,6 +264,23 @@ export default function CoachMessagesPage() {
         })
 
       if (error) throw error
+
+      // Update athlete_status to "messaged" if other user is a player
+      if (otherUserId) {
+        const { data: otherUserProfile } = await supabase
+          .from('profiles')
+          .select('role')
+          .eq('id', otherUserId)
+          .single()
+
+        if (otherUserProfile?.role === 'player') {
+          await supabase
+            .from('school_matches')
+            .update({ athlete_status: 'messaged' })
+            .eq('player_id', otherUserId)
+            .eq('coach_id', currentUser)
+        }
+      }
       
       // Optimistically add message to UI immediately
       const tempMessage: Message = {
