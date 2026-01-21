@@ -395,18 +395,18 @@ export default function AthleteDashboard() {
   const fullName = `${profile.first_name} ${profile.last_name}`
 
   return (
-    <div className="px-6 py-8">
+    <div className="px-4 py-6 sm:px-6 sm:py-8">
       {/* Header */}
-      <div className="mb-8 flex items-start justify-between">
+      <div className="mb-6 sm:mb-8 flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
         <div>
-          <h1 className="mb-2 text-4xl font-bold text-white">{fullName}</h1>
-          <p className="text-lg text-slate-300">
+          <h1 className="mb-2 text-2xl sm:text-3xl lg:text-4xl font-bold text-white">{fullName}</h1>
+          <p className="text-base sm:text-lg text-slate-300">
             {playerProfile.position} • Class of {playerProfile.graduation_year}
           </p>
         </div>
         <Link
           href="/athlete/edit-profile"
-          className="flex items-center gap-2 rounded-lg bg-orange-500 px-4 py-2 font-semibold text-white transition-colors hover:bg-orange-600"
+          className="flex items-center justify-center gap-2 rounded-lg bg-orange-500 px-4 py-2.5 font-semibold text-white transition-colors hover:bg-orange-600 text-sm sm:text-base"
         >
           <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
@@ -416,7 +416,7 @@ export default function AthleteDashboard() {
       </div>
 
       {/* Metrics Cards */}
-      <div className="mb-8 grid grid-cols-1 gap-4 md:grid-cols-3">
+      <div className="mb-6 sm:mb-8 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
         {/* Profile Completeness */}
         <div className="rounded-lg bg-slate-800 p-6 border border-slate-700">
           <div className="mb-4 flex items-center justify-between">
@@ -465,17 +465,17 @@ export default function AthleteDashboard() {
 
       {/* Recruiting Analysis Section */}
       {!analysis && (
-        <div className="mb-8 flex items-center justify-between rounded-lg bg-slate-800 p-6 border border-slate-700">
-          <div>
-            <h2 className="mb-2 text-xl font-bold text-white">Get Your Recruiting Analysis</h2>
-            <p className="text-slate-300">
+        <div className="mb-6 sm:mb-8 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 rounded-lg bg-slate-800 p-4 sm:p-6 border border-slate-700">
+          <div className="flex-1">
+            <h2 className="mb-2 text-lg sm:text-xl font-bold text-white">Get Your Recruiting Analysis</h2>
+            <p className="text-sm sm:text-base text-slate-300">
               Receive personalized insights about your recruiting position and next steps.
             </p>
           </div>
           <button
             onClick={handleGetAnalysis}
             disabled={loadingAnalysis}
-            className="flex items-center gap-2 rounded-lg bg-orange-500 px-6 py-3 font-semibold text-white transition-colors hover:bg-orange-600 disabled:opacity-50 disabled:cursor-not-allowed"
+            className="flex items-center justify-center gap-2 rounded-lg bg-orange-500 px-4 sm:px-6 py-2.5 sm:py-3 font-semibold text-white transition-colors hover:bg-orange-600 disabled:opacity-50 disabled:cursor-not-allowed text-sm sm:text-base whitespace-nowrap"
           >
             <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z" />
@@ -487,10 +487,10 @@ export default function AthleteDashboard() {
 
 
       {/* Tabs */}
-      <div className="mb-6 flex gap-2 border-b border-slate-700">
+      <div className="mb-4 sm:mb-6 flex gap-2 border-b border-slate-700 overflow-x-auto scrollbar-hide -mx-4 px-4 sm:mx-0 sm:px-0">
         <button
           onClick={() => setActiveTab('matches')}
-          className={`px-4 py-2 font-medium transition-colors ${
+          className={`px-3 sm:px-4 py-2 font-medium transition-colors whitespace-nowrap text-sm sm:text-base ${
             activeTab === 'matches'
               ? 'border-b-2 border-orange-500 text-white'
               : 'text-slate-400 hover:text-white'
@@ -500,7 +500,7 @@ export default function AthleteDashboard() {
         </button>
         <button
           onClick={() => setActiveTab('profile')}
-          className={`px-4 py-2 font-medium transition-colors ${
+          className={`px-3 sm:px-4 py-2 font-medium transition-colors whitespace-nowrap text-sm sm:text-base ${
             activeTab === 'profile'
               ? 'border-b-2 border-orange-500 text-white'
               : 'text-slate-400 hover:text-white'
@@ -511,7 +511,7 @@ export default function AthleteDashboard() {
         {analysis && (
           <button
             onClick={() => setActiveTab('analysis')}
-            className={`px-4 py-2 font-medium transition-colors ${
+            className={`px-3 sm:px-4 py-2 font-medium transition-colors whitespace-nowrap text-sm sm:text-base ${
               activeTab === 'analysis'
                 ? 'border-b-2 border-orange-500 text-white'
                 : 'text-slate-400 hover:text-white'
@@ -555,7 +555,7 @@ export default function AthleteDashboard() {
                   const coachName = `${match.coach_info.first_name || ''} ${match.coach_info.last_name || ''}`.trim() || 'Coach'
                   
                   return (
-                    <div key={match.id} className="rounded-lg bg-slate-800 p-6 border border-slate-700 relative">
+                    <div key={match.id} className="rounded-lg bg-slate-800 p-4 sm:p-6 border border-slate-700 relative">
                       {/* Three-dot menu */}
                       <div className="absolute top-4 right-4">
                         <div className="relative">
@@ -587,36 +587,36 @@ export default function AthleteDashboard() {
                         </div>
                       </div>
 
-                      <div className="mb-4 flex items-center justify-between">
-                        <div className="flex items-center gap-4">
+                      <div className="mb-4 flex items-start sm:items-center justify-between gap-3">
+                        <div className="flex items-center gap-3 sm:gap-4 flex-1 min-w-0">
                           {match.coach_info.profile_photo_url ? (
                             <img
                               src={match.coach_info.profile_photo_url}
                               alt={coachName}
-                              className="h-12 w-12 rounded-full object-cover"
+                              className="h-10 w-10 sm:h-12 sm:w-12 rounded-full object-cover flex-shrink-0"
                             />
                           ) : (
-                            <div className="h-12 w-12 rounded-full bg-slate-700 flex items-center justify-center">
-                              <span className="text-lg font-semibold text-slate-300">
+                            <div className="h-10 w-10 sm:h-12 sm:w-12 rounded-full bg-slate-700 flex items-center justify-center flex-shrink-0">
+                              <span className="text-base sm:text-lg font-semibold text-slate-300">
                                 {match.coach_info.first_name?.[0] || match.coach_info.last_name?.[0] || 'C'}
                               </span>
                             </div>
                           )}
-                          <div>
+                          <div className="min-w-0 flex-1">
                             {match.coach_profile ? (
                               <>
                                 <div className="mb-1">
-                                  <h3 className="text-xl font-bold text-white">{match.coach_profile.school_name}</h3>
+                                  <h3 className="text-lg sm:text-xl font-bold text-white truncate">{match.coach_profile.school_name}</h3>
                                 </div>
-                                <p className="text-slate-400">{coachName} • {match.coach_profile.coaching_position}</p>
-                                <p className="text-slate-400">{match.coach_profile.division} • {match.coach_profile.team_gender}</p>
+                                <p className="text-sm sm:text-base text-slate-400 truncate">{coachName} • {match.coach_profile.coaching_position}</p>
+                                <p className="text-sm sm:text-base text-slate-400 truncate">{match.coach_profile.division} • {match.coach_profile.team_gender}</p>
                               </>
                             ) : (
                               <>
                                 <div className="mb-1">
-                                  <h3 className="text-xl font-bold text-white">Unknown School</h3>
+                                  <h3 className="text-lg sm:text-xl font-bold text-white truncate">Unknown School</h3>
                                 </div>
-                                <p className="text-slate-400">{coachName}</p>
+                                <p className="text-sm sm:text-base text-slate-400 truncate">{coachName}</p>
                               </>
                             )}
                           </div>
@@ -662,12 +662,13 @@ export default function AthleteDashboard() {
                               alert('Failed to start conversation. Please try again.')
                             }
                           }}
-                          className="flex items-center gap-2 rounded-lg bg-slate-700 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-slate-600"
+                          className="flex items-center justify-center gap-2 rounded-lg bg-slate-700 px-4 py-2.5 text-sm font-medium text-white transition-colors hover:bg-slate-600 flex-1 sm:flex-initial"
                         >
                           <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
                           </svg>
-                          Send Message
+                          <span className="hidden sm:inline">Send Message</span>
+                          <span className="sm:hidden">Message</span>
                         </button>
                       </div>
                     </div>
@@ -680,13 +681,13 @@ export default function AthleteDashboard() {
 
       {activeTab === 'profile' && (
         <div>
-          <h2 className="mb-6 text-2xl font-bold text-white">Complete Profile</h2>
+          <h2 className="mb-4 sm:mb-6 text-xl sm:text-2xl font-bold text-white">Complete Profile</h2>
           
-          <div className="mb-6 grid grid-cols-1 gap-6 md:grid-cols-2">
+          <div className="mb-4 sm:mb-6 grid grid-cols-1 gap-4 sm:gap-6 lg:grid-cols-2">
             {/* Athletic Information */}
-            <div className="rounded-lg bg-slate-800 p-6 border border-slate-700">
-              <h3 className="mb-4 text-lg font-semibold text-white">Athletic Information</h3>
-              <div className="space-y-3 text-slate-300">
+            <div className="rounded-lg bg-slate-800 p-4 sm:p-6 border border-slate-700">
+              <h3 className="mb-3 sm:mb-4 text-base sm:text-lg font-semibold text-white">Athletic Information</h3>
+              <div className="space-y-2 sm:space-y-3 text-sm sm:text-base text-slate-300">
                 <div>
                   <span className="font-medium text-white">Position:</span> {playerProfile.position}
                 </div>
@@ -707,9 +708,9 @@ export default function AthleteDashboard() {
             </div>
 
             {/* Academic Information */}
-            <div className="rounded-lg bg-slate-800 p-6 border border-slate-700">
-              <h3 className="mb-4 text-lg font-semibold text-white">Academic Information</h3>
-              <div className="space-y-3 text-slate-300">
+            <div className="rounded-lg bg-slate-800 p-4 sm:p-6 border border-slate-700">
+              <h3 className="mb-3 sm:mb-4 text-base sm:text-lg font-semibold text-white">Academic Information</h3>
+              <div className="space-y-2 sm:space-y-3 text-sm sm:text-base text-slate-300">
                 <div>
                   <span className="font-medium text-white">GPA:</span> {playerProfile.gpa || <span className="text-orange-400">Not specified</span>}
                 </div>
@@ -731,21 +732,21 @@ export default function AthleteDashboard() {
 
           {/* Achievements */}
           {playerProfile.achievements_awards && (
-            <div className="mb-6 rounded-lg bg-slate-800 p-6 border border-slate-700">
-              <h3 className="mb-4 text-lg font-semibold text-white">Achievements</h3>
-              <p className="text-slate-300">{playerProfile.achievements_awards}</p>
+            <div className="mb-4 sm:mb-6 rounded-lg bg-slate-800 p-4 sm:p-6 border border-slate-700">
+              <h3 className="mb-3 sm:mb-4 text-base sm:text-lg font-semibold text-white">Achievements</h3>
+              <p className="text-sm sm:text-base text-slate-300">{playerProfile.achievements_awards}</p>
             </div>
           )}
 
           {/* Highlight Video */}
           {playerProfile.highlight_video_url && (
-            <div className="mb-6 rounded-lg bg-slate-800 p-6 border border-slate-700">
-              <h3 className="mb-4 text-lg font-semibold text-white">Highlight Video</h3>
+            <div className="mb-4 sm:mb-6 rounded-lg bg-slate-800 p-4 sm:p-6 border border-slate-700">
+              <h3 className="mb-3 sm:mb-4 text-base sm:text-lg font-semibold text-white">Highlight Video</h3>
               <a
                 href={playerProfile.highlight_video_url}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="text-orange-400 hover:text-orange-300"
+                className="text-sm sm:text-base text-orange-400 hover:text-orange-300 break-all"
               >
                 {playerProfile.highlight_video_url}
               </a>
@@ -753,9 +754,9 @@ export default function AthleteDashboard() {
           )}
 
           {/* Preferences */}
-          <div className="rounded-lg bg-slate-800 p-6 border border-slate-700">
-            <h3 className="mb-4 text-lg font-semibold text-white">Preferences</h3>
-            <div className="space-y-3 text-slate-300">
+          <div className="rounded-lg bg-slate-800 p-4 sm:p-6 border border-slate-700">
+            <h3 className="mb-3 sm:mb-4 text-base sm:text-lg font-semibold text-white">Preferences</h3>
+            <div className="space-y-2 sm:space-y-3 text-sm sm:text-base text-slate-300">
               <div>
                 <span className="font-medium text-white">Division Preference:</span>{' '}
                 {playerProfile.division_preference || <span className="text-orange-400">Not specified</span>}
@@ -776,41 +777,41 @@ export default function AthleteDashboard() {
               <div className="text-slate-400">Generating your recruiting analysis...</div>
             </div>
           ) : analysis ? (
-            <div className="space-y-6">
+            <div className="space-y-4 sm:space-y-6">
               {/* Overall Assessment */}
-              <div className="rounded-lg bg-slate-800 p-6 border border-slate-700">
-                <div className="mb-4 flex items-center gap-3">
-                  <Target className="h-6 w-6 text-orange-400" />
-                  <h2 className="text-xl font-semibold text-white">Overall Assessment</h2>
+              <div className="rounded-lg bg-slate-800 p-4 sm:p-6 border border-slate-700">
+                <div className="mb-3 sm:mb-4 flex items-center gap-2 sm:gap-3">
+                  <Target className="h-5 w-5 sm:h-6 sm:w-6 text-orange-400" />
+                  <h2 className="text-lg sm:text-xl font-semibold text-white">Overall Assessment</h2>
                 </div>
-                <p className="text-slate-300 leading-relaxed">{analysis.overallAssessment}</p>
+                <p className="text-sm sm:text-base text-slate-300 leading-relaxed">{analysis.overallAssessment}</p>
               </div>
 
               {/* Analysis Cards */}
-              <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
+              <div className="grid grid-cols-1 gap-4 sm:gap-6 lg:grid-cols-2">
                 {/* Academic Analysis */}
-                <div className="rounded-lg bg-slate-800 p-6 border border-slate-700">
-                  <div className="mb-4 flex items-center gap-3">
-                    <GraduationCap className="h-5 w-5 text-orange-400" />
-                    <h3 className="text-lg font-semibold text-white">Academic Analysis</h3>
+                <div className="rounded-lg bg-slate-800 p-4 sm:p-6 border border-slate-700">
+                  <div className="mb-3 sm:mb-4 flex items-center gap-2 sm:gap-3">
+                    <GraduationCap className="h-4 w-4 sm:h-5 sm:w-5 text-orange-400" />
+                    <h3 className="text-base sm:text-lg font-semibold text-white">Academic Analysis</h3>
                   </div>
-                  <p className="text-slate-300 leading-relaxed">{analysis.academicAnalysis}</p>
+                  <p className="text-sm sm:text-base text-slate-300 leading-relaxed">{analysis.academicAnalysis}</p>
                 </div>
 
                 {/* Athletic Analysis */}
-                <div className="rounded-lg bg-slate-800 p-6 border border-slate-700">
-                  <div className="mb-4 flex items-center gap-3">
-                    <Target className="h-5 w-5 text-orange-400" />
-                    <h3 className="text-lg font-semibold text-white">Athletic Analysis</h3>
+                <div className="rounded-lg bg-slate-800 p-4 sm:p-6 border border-slate-700">
+                  <div className="mb-3 sm:mb-4 flex items-center gap-2 sm:gap-3">
+                    <Target className="h-4 w-4 sm:h-5 sm:w-5 text-orange-400" />
+                    <h3 className="text-base sm:text-lg font-semibold text-white">Athletic Analysis</h3>
                   </div>
-                  <p className="text-slate-300 leading-relaxed">{analysis.athleticAnalysis}</p>
+                  <p className="text-sm sm:text-base text-slate-300 leading-relaxed">{analysis.athleticAnalysis}</p>
                 </div>
               </div>
 
               {/* Target Divisions */}
-              <div className="rounded-lg bg-slate-800 p-6 border border-slate-700">
-                <h3 className="mb-4 text-lg font-semibold text-white">Realistic division levels based on your profile</h3>
-                <div className="flex flex-wrap gap-3">
+              <div className="rounded-lg bg-slate-800 p-4 sm:p-6 border border-slate-700">
+                <h3 className="mb-3 sm:mb-4 text-base sm:text-lg font-semibold text-white">Realistic division levels based on your profile</h3>
+                <div className="flex flex-wrap gap-2 sm:gap-3">
                   {analysis.targetDivisions.map((division, index) => (
                     <span
                       key={index}
@@ -823,16 +824,16 @@ export default function AthleteDashboard() {
               </div>
 
               {/* Strengths and Areas for Improvement */}
-              <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
+              <div className="grid grid-cols-1 gap-4 sm:gap-6 lg:grid-cols-2">
                 {/* Strengths */}
-                <div className="rounded-lg bg-slate-800 p-6 border border-slate-700">
-                  <div className="mb-4 flex items-center gap-3">
-                    <CheckCircle2 className="h-5 w-5 text-green-400" />
-                    <h3 className="text-lg font-semibold text-white">Strengths</h3>
+                <div className="rounded-lg bg-slate-800 p-4 sm:p-6 border border-slate-700">
+                  <div className="mb-3 sm:mb-4 flex items-center gap-2 sm:gap-3">
+                    <CheckCircle2 className="h-4 w-4 sm:h-5 sm:w-5 text-green-400" />
+                    <h3 className="text-base sm:text-lg font-semibold text-white">Strengths</h3>
                   </div>
                   <ul className="space-y-2">
                     {analysis.strengths.map((strength, index) => (
-                      <li key={index} className="flex items-start gap-2 text-slate-300">
+                      <li key={index} className="flex items-start gap-2 text-sm sm:text-base text-slate-300">
                         <span className="text-green-400 mt-1">•</span>
                         <span>{strength}</span>
                       </li>
@@ -841,14 +842,14 @@ export default function AthleteDashboard() {
                 </div>
 
                 {/* Areas for Improvement */}
-                <div className="rounded-lg bg-slate-800 p-6 border border-slate-700">
-                  <div className="mb-4 flex items-center gap-3">
-                    <TrendingUp className="h-5 w-5 text-blue-400" />
-                    <h3 className="text-lg font-semibold text-white">Areas for Improvement</h3>
+                <div className="rounded-lg bg-slate-800 p-4 sm:p-6 border border-slate-700">
+                  <div className="mb-3 sm:mb-4 flex items-center gap-2 sm:gap-3">
+                    <TrendingUp className="h-4 w-4 sm:h-5 sm:w-5 text-blue-400" />
+                    <h3 className="text-base sm:text-lg font-semibold text-white">Areas for Improvement</h3>
                   </div>
                   <ul className="space-y-2">
                     {analysis.areasForImprovement.map((area, index) => (
-                      <li key={index} className="flex items-start gap-2 text-slate-300">
+                      <li key={index} className="flex items-start gap-2 text-sm sm:text-base text-slate-300">
                         <span className="text-blue-400 mt-1">•</span>
                         <span>{area}</span>
                       </li>
@@ -858,16 +859,16 @@ export default function AthleteDashboard() {
               </div>
 
               {/* Next Steps */}
-              <div className="rounded-lg bg-slate-800 p-6 border border-slate-700">
-                <div className="mb-4 flex items-center gap-3">
-                  <Clock className="h-5 w-5 text-orange-400" />
-                  <h3 className="text-lg font-semibold text-white">Next Steps</h3>
+              <div className="rounded-lg bg-slate-800 p-4 sm:p-6 border border-slate-700">
+                <div className="mb-3 sm:mb-4 flex items-center gap-2 sm:gap-3">
+                  <Clock className="h-4 w-4 sm:h-5 sm:w-5 text-orange-400" />
+                  <h3 className="text-base sm:text-lg font-semibold text-white">Next Steps</h3>
                 </div>
-                <p className="mb-4 text-sm text-slate-400">Recommended actions to improve your recruiting position:</p>
-                <ol className="space-y-3">
+                <p className="mb-3 sm:mb-4 text-xs sm:text-sm text-slate-400">Recommended actions to improve your recruiting position:</p>
+                <ol className="space-y-2 sm:space-y-3">
                   {analysis.nextSteps.map((step, index) => (
-                    <li key={index} className="flex items-start gap-3 text-slate-300">
-                      <span className="flex h-6 w-6 items-center justify-center rounded-full bg-orange-500/20 text-sm font-semibold text-orange-400">
+                    <li key={index} className="flex items-start gap-2 sm:gap-3 text-sm sm:text-base text-slate-300">
+                      <span className="flex h-5 w-5 sm:h-6 sm:w-6 items-center justify-center rounded-full bg-orange-500/20 text-xs sm:text-sm font-semibold text-orange-400 flex-shrink-0">
                         {index + 1}
                       </span>
                       <span className="flex-1 pt-0.5">{step}</span>

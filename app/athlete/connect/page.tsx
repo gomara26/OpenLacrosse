@@ -148,30 +148,30 @@ export default function ConnectPage() {
   })
 
   return (
-    <div className="px-6 py-8">
+    <div className="px-4 py-6 sm:px-6 sm:py-8">
       {/* Header */}
-      <div className="mb-8">
-        <h1 className="mb-2 text-4xl font-bold text-white">Connect with Coaches</h1>
-        <p className="text-lg text-slate-300">
+      <div className="mb-6 sm:mb-8">
+        <h1 className="mb-2 text-2xl sm:text-3xl lg:text-4xl font-bold text-white">Connect with Coaches</h1>
+        <p className="text-base sm:text-lg text-slate-300">
           Discover and connect with college lacrosse coaches
         </p>
       </div>
 
       {/* Search and Filter Bar */}
-      <div className="mb-6 flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+      <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div className="flex-1">
           <input
             type="text"
             placeholder="Search coaches by name or school..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full rounded-lg bg-slate-800 px-4 py-2 text-white placeholder-slate-400 border border-slate-700 focus:outline-none focus:ring-2 focus:ring-orange-500"
+            className="w-full rounded-lg bg-slate-800 px-4 py-2.5 text-white placeholder-slate-400 border border-slate-700 focus:outline-none focus:ring-2 focus:ring-orange-500 text-sm sm:text-base"
           />
         </div>
         <select
           value={filterDivision}
           onChange={(e) => setFilterDivision(e.target.value)}
-          className="rounded-lg bg-slate-800 px-4 py-2 text-white border border-slate-700 focus:outline-none focus:ring-2 focus:ring-orange-500"
+          className="rounded-lg bg-slate-800 px-4 py-2.5 text-white border border-slate-700 focus:outline-none focus:ring-2 focus:ring-orange-500 text-sm sm:text-base"
         >
           <option value="">All Divisions</option>
           <option value="D1">D1</option>
@@ -186,7 +186,7 @@ export default function ConnectPage() {
           <div className="text-slate-400">Loading coaches...</div>
         </div>
       ) : (
-        <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
+        <div className="grid grid-cols-2 gap-4 sm:gap-6 lg:grid-cols-3">
           {filteredCoaches.map((coach) => {
             const fullName = `${coach.first_name || ''} ${coach.last_name || ''}`.trim() || 'Coach'
             return (
@@ -195,20 +195,20 @@ export default function ConnectPage() {
                 className="rounded-lg bg-slate-800 border border-slate-700 overflow-hidden hover:border-orange-500/50 transition-colors"
               >
                 {/* Profile Header */}
-                <div className="relative bg-gradient-to-br from-slate-700 to-slate-800 h-24">
+                <div className="relative bg-gradient-to-br from-slate-700 to-slate-800 h-16 sm:h-24">
                   {coach.profile_photo_url && (
                     <div className="absolute bottom-0 left-1/2 transform -translate-x-1/2 translate-y-1/2">
                       <img
                         src={coach.profile_photo_url}
                         alt={fullName}
-                        className="w-20 h-20 rounded-full border-4 border-slate-800 object-cover"
+                        className="w-12 h-12 sm:w-20 sm:h-20 rounded-full border-2 sm:border-4 border-slate-800 object-cover"
                       />
                     </div>
                   )}
                   {!coach.profile_photo_url && (
                     <div className="absolute bottom-0 left-1/2 transform -translate-x-1/2 translate-y-1/2">
-                      <div className="w-20 h-20 rounded-full border-4 border-slate-800 bg-slate-700 flex items-center justify-center">
-                        <span className="text-2xl font-semibold text-slate-300">
+                      <div className="w-12 h-12 sm:w-20 sm:h-20 rounded-full border-2 sm:border-4 border-slate-800 bg-slate-700 flex items-center justify-center">
+                        <span className="text-base sm:text-2xl font-semibold text-slate-300">
                           {coach.first_name?.[0] || coach.last_name?.[0] || 'C'}
                         </span>
                       </div>
@@ -217,58 +217,58 @@ export default function ConnectPage() {
                 </div>
 
                 {/* Profile Content */}
-                <div className="pt-12 pb-6 px-6 text-center">
-                  <h3 className="text-xl font-bold text-white mb-1">{fullName}</h3>
-                  <p className="text-orange-400 font-semibold mb-1">{coach.school_name}</p>
-                  <p className="text-slate-400 text-sm mb-2">{coach.coaching_position}</p>
-                  <div className="flex items-center justify-center gap-2 mb-4">
-                    <span className="px-3 py-1 rounded-full bg-slate-700 text-slate-300 text-xs font-medium">
+                <div className="pt-8 sm:pt-12 pb-3 sm:pb-4 lg:pb-6 px-2 sm:px-4 lg:px-6 text-center">
+                  <h3 className="text-sm sm:text-lg lg:text-xl font-bold text-white mb-0.5 sm:mb-1 line-clamp-1">{fullName}</h3>
+                  <p className="text-orange-400 font-semibold mb-0.5 sm:mb-1 text-xs sm:text-sm lg:text-base line-clamp-1">{coach.school_name}</p>
+                  <p className="text-slate-400 text-xs mb-1 sm:mb-2 line-clamp-1">{coach.coaching_position}</p>
+                  <div className="flex items-center justify-center gap-1 sm:gap-2 mb-2 sm:mb-3 lg:mb-4">
+                    <span className="px-1.5 sm:px-2 lg:px-3 py-0.5 sm:py-1 rounded-full bg-slate-700 text-slate-300 text-[10px] sm:text-xs font-medium">
                       {coach.division}
                     </span>
-                    <span className="px-3 py-1 rounded-full bg-slate-700 text-slate-300 text-xs font-medium">
+                    <span className="px-1.5 sm:px-2 lg:px-3 py-0.5 sm:py-1 rounded-full bg-slate-700 text-slate-300 text-[10px] sm:text-xs font-medium">
                       {coach.team_gender}
                     </span>
                   </div>
 
                   {/* Recruiting Info */}
                   {coach.positions_recruiting && (
-                    <div className="mb-3 text-left">
+                    <div className="mb-2 sm:mb-3 text-left hidden sm:block">
                       <p className="text-xs font-medium text-slate-400 mb-1">Recruiting:</p>
-                      <p className="text-sm text-slate-300">{coach.positions_recruiting}</p>
+                      <p className="text-xs sm:text-sm text-slate-300 line-clamp-1">{coach.positions_recruiting}</p>
                     </div>
                   )}
 
                   {coach.target_graduation_years && (
-                    <div className="mb-4 text-left">
+                    <div className="mb-2 sm:mb-3 lg:mb-4 text-left hidden sm:block">
                       <p className="text-xs font-medium text-slate-400 mb-1">Target Years:</p>
-                      <p className="text-sm text-slate-300">{coach.target_graduation_years}</p>
+                      <p className="text-xs sm:text-sm text-slate-300 line-clamp-1">{coach.target_graduation_years}</p>
                     </div>
                   )}
 
                   {/* Bio Preview */}
                   {coach.bio && (
-                    <p className="text-sm text-slate-400 mb-4 line-clamp-2 text-left">{coach.bio}</p>
+                    <p className="text-xs sm:text-sm text-slate-400 mb-2 sm:mb-3 lg:mb-4 line-clamp-2 text-left hidden sm:block">{coach.bio}</p>
                   )}
 
                   {/* Action Buttons */}
-                  <div className="flex gap-2">
+                  <div className="flex gap-1.5 sm:gap-2">
                     {coach.isConnected ? (
                       <button
                         disabled
-                        className="flex-1 rounded-lg bg-green-600 px-4 py-2 text-sm font-semibold text-white cursor-not-allowed"
+                        className="flex-1 rounded-lg bg-green-600 px-2 sm:px-3 lg:px-4 py-1.5 sm:py-2 text-[10px] sm:text-xs lg:text-sm font-semibold text-white cursor-not-allowed flex items-center justify-center gap-1"
                       >
-                        <svg className="inline-block h-4 w-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <svg className="h-2.5 w-2.5 sm:h-3 sm:w-3 lg:h-4 lg:w-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
                         </svg>
-                        Connected
+                        <span>Connected</span>
                       </button>
                     ) : (
                       <button
                         onClick={() => handleConnect(coach.id)}
                         disabled={connectingCoachId === coach.id}
-                        className="flex-1 rounded-lg bg-orange-500 px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-orange-600 disabled:opacity-50 disabled:cursor-not-allowed"
+                        className="flex-1 rounded-lg bg-orange-500 px-2 sm:px-3 lg:px-4 py-1.5 sm:py-2 text-[10px] sm:text-xs lg:text-sm font-semibold text-white transition-colors hover:bg-orange-600 disabled:opacity-50 disabled:cursor-not-allowed"
                       >
-                        {connectingCoachId === coach.id ? 'Connecting...' : 'Connect'}
+                        {connectingCoachId === coach.id ? '...' : 'Connect'}
                       </button>
                     )}
                     <button
@@ -289,10 +289,10 @@ export default function ConnectPage() {
                           alert('Failed to start conversation. Please try again.')
                         }
                       }}
-                      className="rounded-lg bg-slate-700 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-slate-600"
+                      className="rounded-lg bg-slate-700 px-2 sm:px-3 lg:px-4 py-1.5 sm:py-2 text-xs sm:text-sm font-medium text-white transition-colors hover:bg-slate-600 flex items-center justify-center"
                       title="Send Message"
                     >
-                      <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <svg className="h-3 w-3 sm:h-4 sm:w-4 lg:h-5 lg:w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
                       </svg>
                     </button>

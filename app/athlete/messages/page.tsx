@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef, Suspense } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
-import { MessageCircle, Send } from 'lucide-react'
+import { MessageCircle, Send, ArrowLeft } from 'lucide-react'
 
 interface Conversation {
   id: string
@@ -45,6 +45,9 @@ function AthleteMessagesContent() {
   const [sending, setSending] = useState(false)
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const [currentUser, setCurrentUser] = useState<string | null>(null)
+  const [showConversationsList, setShowConversationsList] = useState(false)
+  const [isTransitioning, setIsTransitioning] = useState(false)
+  const hasInitializedRef = useRef(false)
 
   useEffect(() => {
     async function loadData() {
@@ -114,10 +117,10 @@ function AthleteMessagesContent() {
     }
   }, [currentUser, conversations, selectedConversation, supabase])
 
-  // Auto-select conversation based on query parameter or first conversation
+  // Auto-select conversation based on query parameter or first conversation (only on initial load)
   useEffect(() => {
-    if (!selectedConversation && conversations.length > 0) {
-      const coachId = searchParams.get('coach')
+    if (!hasInitializedRef.current && !selectedConversation && conversations.length > 0) {
+      const coachId = searchParams?.get('coach') || null
       if (coachId) {
         // Find conversation with this coach
         const conversation = conversations.find(
@@ -125,19 +128,29 @@ function AthleteMessagesContent() {
         )
         if (conversation) {
           setSelectedConversation(conversation.id)
+          hasInitializedRef.current = true
           // Clear the query parameter after selecting
-          const newUrl = new URL(window.location.href)
-          newUrl.searchParams.delete('coach')
-          router.replace(newUrl.pathname + newUrl.search)
+          if (typeof window !== 'undefined') {
+            const newUrl = new URL(window.location.href)
+            newUrl.searchParams.delete('coach')
+            router.replace(newUrl.pathname + newUrl.search)
+          }
         } else {
           // If conversation not found yet, select first one
           setSelectedConversation(conversations[0].id)
+          hasInitializedRef.current = true
         }
       } else {
-        setSelectedConversation(conversations[0].id)
+        // Only auto-select first conversation on desktop, not mobile
+        if (typeof window !== 'undefined' && window.innerWidth >= 1024) {
+          setSelectedConversation(conversations[0].id)
+        }
+        hasInitializedRef.current = true
       }
     }
-  }, [conversations, selectedConversation, searchParams, router])
+    // Only depend on conversations length and selectedConversation to avoid dependency array size changes
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [conversations.length, selectedConversation])
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
@@ -332,6 +345,18 @@ function AthleteMessagesContent() {
 
   const selectedConv = conversations.find((c) => c.id === selectedConversation)
 
+  // On mobile, show conversations list when no conversation is selected
+  useEffect(() => {
+    if (selectedConversation) {
+      // Hide conversations list when a conversation is selected on mobile
+      if (typeof window !== 'undefined' && window.innerWidth < 1024) {
+        setShowConversationsList(false)
+      }
+    }
+    // Note: We don't auto-show the list when selectedConversation is null
+    // because the back button manually controls this state
+  }, [selectedConversation])
+
   if (loading) {
     return (
       <div className="flex h-screen items-center justify-center">
@@ -341,11 +366,28 @@ function AthleteMessagesContent() {
   }
 
   return (
-    <div className="flex h-screen w-full">
+    <div className="flex h-screen w-full relative">
+      {/* Mobile overlay */}
+      {showConversationsList && (
+        <div
+          className="fixed inset-0 bg-black/50 z-40 lg:hidden"
+          onClick={() => setShowConversationsList(false)}
+        />
+      )}
+
       {/* Conversations List */}
-      <div className="w-96 border-r border-slate-700 bg-slate-800 flex flex-col flex-shrink-0">
-        <div className="p-5 border-b border-slate-700">
-          <h2 className="text-2xl font-bold text-white">Messages</h2>
+      <div className={`absolute lg:relative w-full lg:w-96 border-r border-slate-700 bg-slate-800 flex flex-col flex-shrink-0 h-full z-50 transition-transform duration-300 ${
+        showConversationsList ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'
+      }`}>
+        <div className="p-4 sm:p-5 border-b border-slate-700 flex items-center gap-3">
+          <button
+            onClick={() => setShowConversationsList(false)}
+            className="lg:hidden rounded-lg p-2 text-slate-400 hover:bg-slate-700 hover:text-white"
+            aria-label="Close conversations"
+          >
+            <ArrowLeft className="h-5 w-5" />
+          </button>
+          <h2 className="text-xl sm:text-2xl font-bold text-white">Messages</h2>
         </div>
         <div className="flex-1 overflow-y-auto">
           {conversations.length === 0 ? (
@@ -362,35 +404,38 @@ function AthleteMessagesContent() {
               return (
                 <button
                   key={conv.id}
-                  onClick={() => setSelectedConversation(conv.id)}
-                  className={`w-full p-5 text-left border-b border-slate-700 hover:bg-slate-700 transition-colors ${
+                  onClick={() => {
+                    setSelectedConversation(conv.id)
+                    setShowConversationsList(false)
+                  }}
+                  className={`w-full p-3 sm:p-4 lg:p-5 text-left border-b border-slate-700 hover:bg-slate-700 transition-colors ${
                     isSelected ? 'bg-slate-700' : ''
                   }`}
                 >
-                  <div className="flex items-center gap-4">
+                  <div className="flex items-center gap-3 sm:gap-4">
                     {otherUser.profile_photo_url ? (
                       <img
                         src={otherUser.profile_photo_url}
                         alt={name}
-                        className="w-14 h-14 rounded-full object-cover flex-shrink-0"
+                        className="w-12 h-12 sm:w-14 sm:h-14 rounded-full object-cover flex-shrink-0"
                       />
                     ) : (
-                      <div className="w-14 h-14 rounded-full bg-slate-600 flex items-center justify-center flex-shrink-0">
-                        <span className="text-xl font-semibold text-slate-300">
+                      <div className="w-12 h-12 sm:w-14 sm:h-14 rounded-full bg-slate-600 flex items-center justify-center flex-shrink-0">
+                        <span className="text-lg sm:text-xl font-semibold text-slate-300">
                           {otherUser.first_name?.[0] || otherUser.last_name?.[0] || 'C'}
                         </span>
                       </div>
                     )}
                     <div className="flex-1 min-w-0">
-                      <div className="font-semibold text-white text-base truncate mb-1">{name}</div>
+                      <div className="font-semibold text-white text-sm sm:text-base truncate mb-0.5 sm:mb-1">{name}</div>
                       {conv.last_message && (
-                        <div className="text-sm text-slate-400 truncate mb-1">
+                        <div className="text-xs sm:text-sm text-slate-400 truncate mb-0.5 sm:mb-1">
                           {conv.last_message.sender_id === currentUser ? 'You: ' : ''}
                           {conv.last_message.content}
                         </div>
                       )}
                       {conv.last_message_at && (
-                        <div className="text-xs text-slate-500">
+                        <div className="text-[10px] sm:text-xs text-slate-500">
                           {formatTime(conv.last_message_at)}
                         </div>
                       )}
@@ -404,36 +449,61 @@ function AthleteMessagesContent() {
       </div>
 
       {/* Message Thread */}
-      <div className="flex-1 flex flex-col bg-slate-900">
+      <div className={`flex-1 flex flex-col bg-slate-900 w-full transition-opacity duration-300 ${
+        showConversationsList ? 'opacity-0 pointer-events-none' : 'opacity-100'
+      }`}>
         {selectedConversation && selectedConv ? (
           <>
             {/* Header */}
-            <div className="p-4 border-b border-slate-700 bg-slate-800">
-              <div className="flex items-center gap-3">
+            <div className="p-3 sm:p-4 border-b border-slate-700 bg-slate-800 relative z-10">
+              <div className="flex items-center gap-2 sm:gap-3">
+                <button
+                  onClick={(e) => {
+                    e.preventDefault()
+                    e.stopPropagation()
+                    // Show conversations list first (this will fade out the message thread)
+                    setShowConversationsList(true)
+                    // Clear selected conversation after fade completes
+                    setTimeout(() => {
+                      setSelectedConversation(null)
+                      // Clear any query parameters
+                      if (typeof window !== 'undefined') {
+                        const newUrl = new URL(window.location.href)
+                        newUrl.searchParams.delete('coach')
+                        router.replace(newUrl.pathname)
+                      }
+                    }, 300) // Match the CSS transition duration
+                  }}
+                  className="lg:hidden rounded-lg p-2 text-slate-400 hover:bg-slate-700 hover:text-white active:bg-slate-600 mr-1 flex-shrink-0 touch-manipulation relative z-20"
+                  aria-label="Back to conversations"
+                  type="button"
+                >
+                  <ArrowLeft className="h-5 w-5" />
+                </button>
                 {selectedConv.other_user.profile_photo_url ? (
                   <img
                     src={selectedConv.other_user.profile_photo_url}
                     alt={`${selectedConv.other_user.first_name} ${selectedConv.other_user.last_name}`}
-                    className="w-10 h-10 rounded-full object-cover"
+                    className="w-9 h-9 sm:w-10 sm:h-10 rounded-full object-cover flex-shrink-0"
                   />
                 ) : (
-                  <div className="w-10 h-10 rounded-full bg-slate-600 flex items-center justify-center">
-                    <span className="text-sm font-semibold text-slate-300">
+                  <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-full bg-slate-600 flex items-center justify-center flex-shrink-0">
+                    <span className="text-xs sm:text-sm font-semibold text-slate-300">
                       {selectedConv.other_user.first_name?.[0] || selectedConv.other_user.last_name?.[0] || 'C'}
                     </span>
                   </div>
                 )}
-                <div>
-                  <div className="font-semibold text-white">
+                <div className="min-w-0 flex-1">
+                  <div className="font-semibold text-white text-sm sm:text-base truncate">
                     {selectedConv.other_user.first_name} {selectedConv.other_user.last_name}
                   </div>
-                  <div className="text-sm text-slate-400">Coach</div>
+                  <div className="text-xs sm:text-sm text-slate-400">Coach</div>
                 </div>
               </div>
             </div>
 
             {/* Messages */}
-            <div className="flex-1 overflow-y-auto p-4 space-y-4">
+            <div className="flex-1 overflow-y-auto p-3 sm:p-4 space-y-3 sm:space-y-4">
               {messages.map((message) => {
                 const isOwn = message.sender_id === currentUser
                 return (
@@ -442,14 +512,14 @@ function AthleteMessagesContent() {
                     className={`flex ${isOwn ? 'justify-end' : 'justify-start'}`}
                   >
                     <div
-                      className={`max-w-xs lg:max-w-md px-4 py-2 rounded-lg ${
+                      className={`max-w-[75%] sm:max-w-xs lg:max-w-md px-3 sm:px-4 py-2 rounded-lg ${
                         isOwn
                           ? 'bg-orange-500 text-white'
                           : 'bg-slate-700 text-white'
                       }`}
                     >
-                      <p>{message.content}</p>
-                      <p className={`text-xs mt-1 ${isOwn ? 'text-orange-100' : 'text-slate-400'}`}>
+                      <p className="text-sm sm:text-base break-words">{message.content}</p>
+                      <p className={`text-[10px] sm:text-xs mt-1 ${isOwn ? 'text-orange-100' : 'text-slate-400'}`}>
                         {formatTime(message.created_at)}
                       </p>
                     </div>
@@ -460,7 +530,7 @@ function AthleteMessagesContent() {
             </div>
 
             {/* Input */}
-            <div className="p-4 border-t border-slate-700 bg-slate-800">
+            <div className="p-3 sm:p-4 border-t border-slate-700 bg-slate-800">
               <form
                 onSubmit={(e) => {
                   e.preventDefault()
@@ -473,34 +543,40 @@ function AthleteMessagesContent() {
                   value={messageContent}
                   onChange={(e) => setMessageContent(e.target.value)}
                   placeholder="Type a message..."
-                  className="flex-1 rounded-lg bg-slate-700 px-4 py-2 text-white placeholder-slate-400 border border-slate-600 focus:outline-none focus:ring-2 focus:ring-orange-500"
+                  className="flex-1 rounded-lg bg-slate-700 px-3 sm:px-4 py-2 sm:py-2.5 text-sm sm:text-base text-white placeholder-slate-400 border border-slate-600 focus:outline-none focus:ring-2 focus:ring-orange-500"
                 />
                 <button
                   type="submit"
                   disabled={!messageContent.trim() || sending}
-                  className="flex items-center gap-2 rounded-lg bg-orange-500 px-6 py-2 font-semibold text-white transition-colors hover:bg-orange-600 disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="flex items-center gap-1.5 sm:gap-2 rounded-lg bg-orange-500 px-4 sm:px-6 py-2 sm:py-2.5 font-semibold text-white transition-colors hover:bg-orange-600 disabled:opacity-50 disabled:cursor-not-allowed text-sm sm:text-base"
                 >
                   {sending ? (
-                    'Sending...'
+                    <span className="hidden sm:inline">Sending...</span>
                   ) : (
                     <>
-                      <Send className="h-4 w-4" />
-                      Send
+                      <Send className="h-4 w-4 flex-shrink-0" />
+                      <span className="hidden sm:inline">Send</span>
                     </>
                   )}
                 </button>
               </form>
             </div>
           </>
-        ) : (
-          <div className="flex-1 flex items-center justify-center">
+        ) : !selectedConversation && !showConversationsList ? (
+          <div className="flex-1 flex items-center justify-center p-4">
             <div className="text-center">
-              <MessageCircle className="mx-auto h-16 w-16 text-slate-400 mb-4" />
-              <h3 className="text-xl font-semibold text-white mb-2">Select a conversation</h3>
-              <p className="text-slate-400">Choose a conversation from the list to start messaging</p>
+              <MessageCircle className="mx-auto h-12 w-12 sm:h-16 sm:w-16 text-slate-400 mb-3 sm:mb-4" />
+              <h3 className="text-lg sm:text-xl font-semibold text-white mb-2">Select a conversation</h3>
+              <p className="text-sm sm:text-base text-slate-400">Choose a conversation from the list to start messaging</p>
+              <button
+                onClick={() => setShowConversationsList(true)}
+                className="mt-4 lg:hidden rounded-lg bg-orange-500 px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-orange-600"
+              >
+                View Conversations
+              </button>
             </div>
           </div>
-        )}
+        ) : null}
       </div>
     </div>
   )

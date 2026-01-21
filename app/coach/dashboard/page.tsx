@@ -693,13 +693,13 @@ export default function CoachDashboard() {
       )}
 
       {activeTab === 'pipeline' && (
-        <div className="rounded-lg bg-slate-800 p-8 border border-slate-700">
-          <div className="mb-6 flex items-center justify-between">
-            <h2 className="text-2xl font-bold text-white">Recruiting Pipeline</h2>
+        <div className="rounded-lg bg-slate-800 p-4 sm:p-6 lg:p-8 border border-slate-700">
+          <div className="mb-4 sm:mb-6 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 sm:gap-0">
+            <h2 className="text-xl sm:text-2xl font-bold text-white">Recruiting Pipeline</h2>
             <select
               value={statusFilter}
               onChange={(e) => setStatusFilter(e.target.value)}
-              className="rounded-lg bg-slate-700 px-4 py-2 text-white border border-slate-600"
+              className="rounded-lg bg-slate-700 px-3 sm:px-4 py-2 text-sm sm:text-base text-white border border-slate-600 w-full sm:w-auto"
             >
               <option value="">All Statuses</option>
               <option value="good_fit">Good Fit</option>
@@ -723,25 +723,25 @@ export default function CoachDashboard() {
               </p>
             </div>
           ) : (
-            <div className="space-y-4">
+            <div className="space-y-3 sm:space-y-4">
               {connectedPlayers
                 .filter((player) => !statusFilter || player.coach_status === statusFilter)
                 .map((player) => {
                   const playerName = `${player.player_profile.first_name || ''} ${player.player_profile.last_name || ''}`.trim() || 'Player'
 
                   return (
-                    <div key={player.id} className="rounded-lg bg-slate-700 p-6 border border-slate-600 hover:border-orange-500/50 transition-colors relative">
+                    <div key={player.id} className="rounded-lg bg-slate-700 p-4 sm:p-6 border border-slate-600 hover:border-orange-500/50 transition-colors relative">
                       {/* Three-dot menu */}
-                      <div className="absolute top-4 right-4">
+                      <div className="absolute top-3 right-3 sm:top-4 sm:right-4">
                         <div className="relative">
                           <button
                             onClick={(e) => {
                               e.stopPropagation()
                               setOpenMenuId(openMenuId === player.id ? null : player.id)
                             }}
-                            className="rounded-lg p-2 text-slate-400 hover:bg-slate-600 hover:text-white transition-colors"
+                            className="rounded-lg p-1.5 sm:p-2 text-slate-400 hover:bg-slate-600 hover:text-white transition-colors touch-manipulation"
                           >
-                            <MoreVertical className="h-5 w-5" />
+                            <MoreVertical className="h-4 w-4 sm:h-5 sm:w-5" />
                           </button>
                           {openMenuId === player.id && (
                             <>
@@ -766,42 +766,42 @@ export default function CoachDashboard() {
                         </div>
                       </div>
 
-                      <div className="mb-4 flex items-center justify-between">
+                      <div className="mb-3 sm:mb-4 flex items-start sm:items-center justify-between gap-2 pr-8 sm:pr-12">
                         <Link
                           href={`/coach/player/${player.player_id}`}
-                          className="flex items-center gap-4 flex-1 hover:opacity-90 transition-opacity cursor-pointer group"
+                          className="flex items-start sm:items-center gap-3 sm:gap-4 flex-1 hover:opacity-90 transition-opacity cursor-pointer group min-w-0"
                         >
                           {player.player_profile.profile_photo_url ? (
                             <img
                               src={player.player_profile.profile_photo_url}
                               alt={playerName}
-                              className="h-16 w-16 rounded-full object-cover"
+                              className="h-12 w-12 sm:h-16 sm:w-16 rounded-full object-cover flex-shrink-0"
                             />
                           ) : (
-                            <div className="h-16 w-16 rounded-full bg-slate-600 flex items-center justify-center">
-                              <span className="text-xl font-semibold text-slate-300">
+                            <div className="h-12 w-12 sm:h-16 sm:w-16 rounded-full bg-slate-600 flex items-center justify-center flex-shrink-0">
+                              <span className="text-base sm:text-xl font-semibold text-slate-300">
                                 {player.player_profile.first_name?.[0] || player.player_profile.last_name?.[0] || 'P'}
                               </span>
                             </div>
                           )}
-                          <div>
-                            <div className="mb-1 flex items-center gap-3">
-                              <h3 className="text-xl font-bold text-white group-hover:text-orange-400 transition-colors">{playerName}</h3>
-                              <span className="rounded-full bg-orange-500/20 px-3 py-1 text-sm font-medium text-orange-400">
+                          <div className="min-w-0 flex-1">
+                            <div className="mb-1 flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-3">
+                              <h3 className="text-base sm:text-xl font-bold text-white group-hover:text-orange-400 transition-colors truncate">{playerName}</h3>
+                              <span className="rounded-full bg-orange-500/20 px-2 sm:px-3 py-0.5 sm:py-1 text-xs sm:text-sm font-medium text-orange-400 whitespace-nowrap flex-shrink-0">
                                 {player.match_score}% Match
                               </span>
                             </div>
                             {player.player_info && (
                               <>
-                                <p className="text-slate-300">
+                                <p className="text-sm sm:text-base text-slate-300">
                                   {player.player_info.position && `${player.player_info.position} • `}
                                   {player.player_info.graduation_year && `Class of ${player.player_info.graduation_year}`}
                                 </p>
                                 {player.player_info.high_school && (
-                                  <p className="text-slate-400 text-sm">{player.player_info.high_school}</p>
+                                  <p className="text-xs sm:text-sm text-slate-400 truncate">{player.player_info.high_school}</p>
                                 )}
                                 {player.player_info.gpa && (
-                                  <p className="text-slate-400 text-sm">GPA: {player.player_info.gpa}</p>
+                                  <p className="text-xs sm:text-sm text-slate-400">GPA: {player.player_info.gpa}</p>
                                 )}
                               </>
                             )}
@@ -809,31 +809,29 @@ export default function CoachDashboard() {
                         </Link>
                       </div>
 
-                      <div className="mb-4 grid grid-cols-2 gap-4" onClick={(e) => e.stopPropagation()}>
-                        <div>
-                          <label className="mb-2 block text-sm font-medium text-slate-400">Status:</label>
-                          <select
-                            value={player.coach_status}
-                            onChange={(e) => handleStatusUpdate(player.id, e.target.value)}
-                            className="w-full rounded-lg bg-slate-600 px-3 py-2 text-white border border-slate-500"
-                          >
-                            <option value="good_fit">Good Fit</option>
-                            <option value="not_good_fit">Not Good Fit</option>
-                            <option value="offered">Offered</option>
-                          </select>
-                        </div>
+                      <div className="mb-3 sm:mb-4" onClick={(e) => e.stopPropagation()}>
+                        <label className="mb-1.5 sm:mb-2 block text-xs sm:text-sm font-medium text-slate-400">Status:</label>
+                        <select
+                          value={player.coach_status}
+                          onChange={(e) => handleStatusUpdate(player.id, e.target.value)}
+                          className="w-full rounded-lg bg-slate-600 px-3 py-2 text-sm sm:text-base text-white border border-slate-500"
+                        >
+                          <option value="good_fit">Good Fit</option>
+                          <option value="not_good_fit">Not Good Fit</option>
+                          <option value="offered">Offered</option>
+                        </select>
                       </div>
 
                       {player.notes && (
-                        <div className="mb-4">
-                          <label className="mb-2 block text-sm font-medium text-slate-400">Player Notes:</label>
-                          <div className="rounded-lg bg-slate-600 px-3 py-2 text-white text-sm border border-slate-500">
+                        <div className="mb-3 sm:mb-4">
+                          <label className="mb-1.5 sm:mb-2 block text-xs sm:text-sm font-medium text-slate-400">Player Notes:</label>
+                          <div className="rounded-lg bg-slate-600 px-3 py-2 text-white text-xs sm:text-sm border border-slate-500">
                             {player.notes}
                           </div>
                         </div>
                       )}
 
-                      <div className="flex gap-3" onClick={(e) => e.stopPropagation()}>
+                      <div className="flex gap-2 sm:gap-3" onClick={(e) => e.stopPropagation()}>
                         <button
                           onClick={async (e) => {
                             e.stopPropagation()
@@ -853,10 +851,10 @@ export default function CoachDashboard() {
                               alert('Failed to start conversation. Please try again.')
                             }
                           }}
-                          className="flex items-center gap-2 rounded-lg bg-slate-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-slate-500"
+                          className="flex items-center justify-center gap-1.5 sm:gap-2 rounded-lg bg-slate-600 px-3 sm:px-4 py-2 text-xs sm:text-sm font-medium text-white transition-colors hover:bg-slate-500 w-full sm:w-auto touch-manipulation"
                         >
-                          <MessageCircle className="h-4 w-4" />
-                          Send Message
+                          <MessageCircle className="h-3.5 w-3.5 sm:h-4 sm:w-4 flex-shrink-0" />
+                          <span>Send Message</span>
                         </button>
                       </div>
                     </div>

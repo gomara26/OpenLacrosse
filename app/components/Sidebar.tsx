@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react'
 import { useRouter, usePathname } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import Link from 'next/link'
-import { ChevronRight, ChevronLeft, Target, Trophy, Users, MessageCircle, LogOut, User, ChevronDown } from 'lucide-react'
+import { ChevronRight, ChevronLeft, Target, Trophy, Users, MessageCircle, LogOut, User, ChevronDown, Menu, X } from 'lucide-react'
 
 interface Profile {
   id: string
@@ -17,9 +17,11 @@ interface Profile {
 interface SidebarProps {
   isCollapsed?: boolean
   setIsCollapsed?: (collapsed: boolean) => void
+  isMobileOpen?: boolean
+  setIsMobileOpen?: (open: boolean) => void
 }
 
-export default function Sidebar({ isCollapsed: externalCollapsed, setIsCollapsed: externalSetCollapsed }: SidebarProps = {}) {
+export default function Sidebar({ isCollapsed: externalCollapsed, setIsCollapsed: externalSetCollapsed, isMobileOpen, setIsMobileOpen }: SidebarProps = {}) {
   const [internalCollapsed, setInternalCollapsed] = useState(false)
   const isCollapsed = externalCollapsed !== undefined ? externalCollapsed : internalCollapsed
   const setIsCollapsed = externalSetCollapsed || setInternalCollapsed
@@ -75,22 +77,64 @@ export default function Sidebar({ isCollapsed: externalCollapsed, setIsCollapsed
 
   const isActive = (path: string) => pathname === path || pathname.startsWith(path + '/')
 
+  const handleLinkClick = () => {
+    // Close mobile menu when a link is clicked
+    if (setIsMobileOpen) {
+      setIsMobileOpen(false)
+    }
+  }
+
   if (loading) {
     return (
-      <div className="fixed left-0 top-0 h-screen w-64 bg-slate-800 border-r border-slate-700">
-        <div className="flex h-full items-center justify-center">
-          <div className="text-slate-400">Loading...</div>
+      <>
+        {/* Mobile hamburger button */}
+        {!isMobileOpen && (
+          <button
+            onClick={() => setIsMobileOpen?.(true)}
+            className="fixed right-4 top-4 z-50 rounded-lg bg-slate-800 p-2 text-white lg:hidden"
+            aria-label="Open menu"
+          >
+            <Menu className="h-6 w-6" />
+          </button>
+        )}
+        <div className="fixed left-0 top-0 h-screen w-64 bg-slate-800 border-r border-slate-700 hidden lg:flex">
+          <div className="flex h-full items-center justify-center">
+            <div className="text-slate-400">Loading...</div>
+          </div>
         </div>
-      </div>
+      </>
     )
   }
 
   return (
-    <div
-      className={`fixed left-0 top-0 h-screen bg-slate-800 border-r border-slate-700 transition-all duration-300 z-10 flex flex-col ${
-        isCollapsed ? 'w-16' : 'w-64'
-      }`}
-    >
+    <>
+      {/* Mobile hamburger button */}
+      {!isMobileOpen && (
+        <button
+          onClick={() => setIsMobileOpen?.(true)}
+          className="fixed right-4 top-4 z-50 rounded-lg bg-slate-800 p-2 text-white shadow-lg lg:hidden"
+          aria-label="Open menu"
+        >
+          <Menu className="h-6 w-6" />
+        </button>
+      )}
+
+      {/* Mobile overlay */}
+      {isMobileOpen && (
+        <div
+          className="fixed inset-0 bg-black/50 z-40 lg:hidden"
+          onClick={() => setIsMobileOpen?.(false)}
+        />
+      )}
+
+      {/* Sidebar */}
+      <div
+        className={`fixed left-0 top-0 h-screen bg-slate-800 border-r border-slate-700 transition-all duration-300 z-50 flex flex-col ${
+          isCollapsed ? 'w-16' : 'w-64'
+        } ${
+          isMobileOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'
+        }`}
+      >
       {/* Header with toggle */}
       <div className="flex h-16 items-center justify-between border-b border-slate-700 px-4 flex-shrink-0">
         {!isCollapsed && (
@@ -99,17 +143,28 @@ export default function Sidebar({ isCollapsed: externalCollapsed, setIsCollapsed
             <span className="font-bold text-white">Open Lacrosse Recruiting</span>
           </div>
         )}
-        <button
-          onClick={() => setIsCollapsed(!isCollapsed)}
-          className="rounded p-2 text-slate-400 hover:bg-slate-700 hover:text-white"
-          aria-label={isCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
-        >
-          {isCollapsed ? (
-            <ChevronRight className="h-5 w-5" />
-          ) : (
-            <ChevronLeft className="h-5 w-5" />
-          )}
-        </button>
+        <div className="flex items-center gap-2">
+          {/* Mobile close button */}
+          <button
+            onClick={() => setIsMobileOpen?.(false)}
+            className="lg:hidden rounded p-2 text-slate-400 hover:bg-slate-700 hover:text-white"
+            aria-label="Close menu"
+          >
+            <X className="h-5 w-5" />
+          </button>
+          {/* Desktop collapse button */}
+          <button
+            onClick={() => setIsCollapsed(!isCollapsed)}
+            className="hidden lg:flex rounded p-2 text-slate-400 hover:bg-slate-700 hover:text-white"
+            aria-label={isCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
+          >
+            {isCollapsed ? (
+              <ChevronRight className="h-5 w-5" />
+            ) : (
+              <ChevronLeft className="h-5 w-5" />
+            )}
+          </button>
+        </div>
       </div>
 
       {/* Navigation Links */}
@@ -119,6 +174,7 @@ export default function Sidebar({ isCollapsed: externalCollapsed, setIsCollapsed
             <>
               <Link
                 href={getDashboardPath()}
+                onClick={handleLinkClick}
                 className={`flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors ${
                   isActive(getDashboardPath())
                     ? 'bg-slate-700 text-white'
@@ -138,6 +194,7 @@ export default function Sidebar({ isCollapsed: externalCollapsed, setIsCollapsed
               {profile.role === 'player' && (
                 <Link
                   href="/athlete/connect"
+                  onClick={handleLinkClick}
                   className={`flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors ${
                     isActive('/athlete/connect')
                       ? 'bg-slate-700 text-white'
@@ -153,6 +210,7 @@ export default function Sidebar({ isCollapsed: externalCollapsed, setIsCollapsed
               {/* Messages link - for both players and coaches */}
               <Link
                 href={profile.role === 'player' ? '/athlete/messages' : '/coach/messages'}
+                onClick={handleLinkClick}
                 className={`flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors ${
                   isActive(profile.role === 'player' ? '/athlete/messages' : '/coach/messages')
                     ? 'bg-slate-700 text-white'
@@ -175,8 +233,11 @@ export default function Sidebar({ isCollapsed: externalCollapsed, setIsCollapsed
             {/* Sign Out Button - Shown above profile on click */}
             {showSignOut && (
               <div className="border-b border-slate-700">
-                <button
-                  onClick={handleLogout}
+            <button
+              onClick={() => {
+                handleLogout()
+                handleLinkClick()
+              }}
                   className={`w-full flex items-center gap-3 rounded-lg px-4 py-3 text-sm font-medium text-slate-300 transition-colors hover:bg-slate-700 hover:text-white ${
                     isCollapsed ? 'justify-center' : ''
                   }`}
@@ -220,5 +281,6 @@ export default function Sidebar({ isCollapsed: externalCollapsed, setIsCollapsed
         )}
       </div>
     </div>
+    </>
   )
 }
